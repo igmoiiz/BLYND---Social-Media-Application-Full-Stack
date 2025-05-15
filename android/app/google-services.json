@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "966190989162",
+    "project_id": "blynd---social-app",
+    "storage_bucket": "blynd---social-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:966190989162:android:c226f6b180d1d7368eef13",
+        "android_client_info": {
+          "package_name": "com.example.social_media"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeCxn3HPFSRLpeC2Jr20_QT5LbfJTs6Ig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
