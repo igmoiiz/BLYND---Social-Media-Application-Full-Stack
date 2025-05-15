@@ -25,4 +25,5 @@ flutter:
   uses-material-design: true
 
   assets:
-  - assets/icons/icon_blynd_black.png
+  - assets/icons/icon_blynd_light.png
+  - assets/icons/icon_blynd_dark.png
