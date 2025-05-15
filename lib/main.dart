@@ -2,9 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:social_media/Utils/Navigation/routes.dart';
 import 'package:social_media/Utils/Theme/theme.dart';
-import 'package:social_media/View/Authentication/login.dart';
 import 'package:social_media/View/Splash/splash_screen.dart';
-import 'package:social_media/View/welcome_screen.dart';
 import 'package:social_media/firebase_options.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
