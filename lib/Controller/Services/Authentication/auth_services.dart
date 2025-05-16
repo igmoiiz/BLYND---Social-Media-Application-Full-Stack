@@ -6,12 +6,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:social_media/Model/user_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthServices extends ChangeNotifier {
   //  Instance for firebase firestore
   final FirebaseFirestore _fireStore = FirebaseFirestore.instance;
+
+  //  Supabase Instance
+  final SupabaseClient _supabase = Supabase.instance.client;
   //  Other Variables
   File? _profileImage;
+  String? imageUrl = '';
 
   //  Instance for Firebase Authentication Services
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -71,6 +76,17 @@ class AuthServices extends ChangeNotifier {
       await _auth
           .createUserWithEmailAndPassword(email: email, password: password)
           .then((value) {
+            _supabase.auth
+                .signInWithPassword(email: email, password: password)
+                .then((value) {
+                  final fileName = "user_${_supabase.auth.currentUser!.id}";
+                  final bytes = profileImage!.readAsBytesSync();
+                  _supabase.storage.from('users').uploadBinary(fileName, bytes);
+                  imageUrl = _supabase.storage
+                      .from('users')
+                      .getPublicUrl(fileName);
+                });
+
             final UserModel user = UserModel(
               name: name,
               email: email,
@@ -78,7 +94,7 @@ class AuthServices extends ChangeNotifier {
               phone: int.parse(phone),
               userName: username,
               age: int.parse(age),
-              profileImage: profileImage?.path ?? '',
+              profileImage: imageUrl!,
             );
 
             // Save the user data in Firestore
