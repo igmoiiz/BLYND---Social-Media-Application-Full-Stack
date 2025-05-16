@@ -2,6 +2,8 @@ import 'dart:developer';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:social_media/Controller/Services/Authentication/auth_services.dart';
 import 'package:social_media/Utils/Navigation/routes.dart';
 import 'package:social_media/Utils/Theme/theme.dart';
 import 'package:social_media/Utils/consts.dart';
@@ -20,7 +22,12 @@ Future<void> main() async {
     url: supabase_url,
     anonKey: supabase_anonKey,
   ).then((value) => log("Supabase Initialized: $value"));
-  runApp(const MainApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (context) => AuthServices())],
+      builder: (context, child) => const MaterialApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
