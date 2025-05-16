@@ -420,22 +420,53 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
             Center(
               child: Stack(
                 children: [
-                  GestureDetector(
-                    onTap: _showImageSourceDialog,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: colorScheme.secondary.withOpacity(0.5),
-                          width: 2,
+                  Consumer<AuthServices>(
+                    builder:
+                        (context, authService, _) => GestureDetector(
+                          onTap: _showImageSourceDialog,
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: colorScheme.secondary.withOpacity(0.5),
+                                width: 2,
+                              ),
+                              image:
+                                  authService.profileImage != null
+                                      ? DecorationImage(
+                                        image: FileImage(
+                                          authService.profileImage!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                      : null,
+                            ),
+                            child:
+                                authService.profileImage == null
+                                    ? const Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.white,
+                                    )
+                                    : null,
+                          ),
                         ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondary,
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
+                      child: Icon(
+                        Icons.camera_alt,
+                        size: 20,
                         color: Colors.white,
                       ),
                     ),

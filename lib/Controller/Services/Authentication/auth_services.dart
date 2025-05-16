@@ -73,42 +73,73 @@ class AuthServices extends ChangeNotifier {
     required String phone,
   }) async {
     try {
-      await _auth
-          .createUserWithEmailAndPassword(email: email, password: password)
-          .then((value) {
-            _supabase.auth
-                .signInWithPassword(email: email, password: password)
-                .then((value) {
-                  final fileName = "user_${_supabase.auth.currentUser!.id}";
-                  final bytes = profileImage!.readAsBytesSync();
-                  _supabase.storage.from('users').uploadBinary(fileName, bytes);
-                  imageUrl = _supabase.storage
-                      .from('users')
-                      .getPublicUrl(fileName);
-                });
+      // Step 1: Create user with Firebase Auth
+      final UserCredential authResult = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
-            final UserModel user = UserModel(
-              name: name,
-              email: email,
-              password: password,
-              phone: int.parse(phone),
-              userName: username,
-              age: int.parse(age),
-              profileImage: imageUrl!,
-            );
+      // Step 2: Sign in to Supabase and upload profile image if available
+      if (profileImage != null) {
+        try {
+          // Sign in to Supabase
+          final response = await _supabase.auth.signInWithPassword(
+            email: email,
+            password: password,
+          );
 
-            // Save the user data in Firestore
-            _fireStore
-                .collection('users')
-                .doc(value.user!.uid)
-                .set(user.toJson());
-          })
-          .onError((error, stackTrace) {
-            log(error.toString());
-          });
+          if (response.user != null) {
+            // Generate a unique filename
+            final fileName = "user_${response.user!.id}";
+
+            // Read image bytes
+            final bytes = profileImage!.readAsBytesSync();
+
+            // Upload image to Supabase storage
+            await _supabase.storage
+                .from('users')
+                .uploadBinary(
+                  fileName,
+                  bytes,
+                  fileOptions: const FileOptions(
+                    cacheControl: '3600',
+                    upsert: true,
+                  ),
+                );
+
+            // Get the public URL
+            imageUrl = _supabase.storage.from('users').getPublicUrl(fileName);
+            log('Image uploaded successfully: $imageUrl');
+          }
+        } catch (e) {
+          log('Error uploading image to Supabase: $e');
+          // If image upload fails, we'll continue with a default image or empty string
+          imageUrl = '';
+        }
+      } else {
+        log('No profile image selected');
+        imageUrl = '';
+      }
+
+      // Step 3: Create user model
+      final UserModel user = UserModel(
+        name: name,
+        email: email,
+        password: password,
+        phone: int.parse(phone),
+        userName: username,
+        age: int.parse(age),
+        profileImage: imageUrl!,
+      );
+
+      // Step 4: Save user data to Firestore
+      await _fireStore
+          .collection('users')
+          .doc(authResult.user!.uid)
+          .set(user.toJson());
+
+      log('User registered successfully');
       return true;
     } catch (e) {
-      log(e.toString());
+      log('Registration error: ${e.toString()}');
       return false;
     }
   }
