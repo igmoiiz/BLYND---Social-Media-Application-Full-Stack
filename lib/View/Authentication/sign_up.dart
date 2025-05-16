@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
@@ -16,7 +15,6 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   // Form keys for each tab
   final _profileFormKey = GlobalKey<FormState>();
   final _accountFormKey = GlobalKey<FormState>();
-  final _formKey = GlobalKey<FormState>();
 
   // Controllers
   final _nameController = TextEditingController();
@@ -42,7 +40,6 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
@@ -58,16 +55,6 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.1, 1.0, curve: Curves.easeOut),
       ),
     );
 
@@ -267,7 +254,6 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,

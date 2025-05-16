@@ -537,8 +537,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     required Color color,
     required VoidCallback onPressed,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
