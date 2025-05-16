@@ -35,7 +35,17 @@ class WelcomePage extends StatelessWidget {
                               height: 199,
                               width: 280,
                             ),
-                        verticalSpace(size.height * 0.28),
+                        Center(
+                          child: Text(
+                            "BLYND sees what others don't!",
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.secondary,
+                              fontSize: size.height * 0.022,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        verticalSpace(size.height * 0.22),
                         CustomButton(
                           text: "Login",
                           isLoading: false,

@@ -65,46 +65,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       backgroundColor: colorScheme.surface,
       body: Stack(
         children: [
-          // Background design elements
-          Positioned(
-            top: -size.height * 0.15,
-            right: -size.width * 0.4,
-            child: Container(
-              width: size.width * 0.8,
-              height: size.width * 0.8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    colorScheme.primary.withOpacity(0.2),
-                    colorScheme.secondary.withOpacity(0.3),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -size.height * 0.1,
-            left: -size.width * 0.3,
-            child: Container(
-              width: size.width * 0.6,
-              height: size.width * 0.6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    colorScheme.secondary.withOpacity(0.2),
-                    colorScheme.primary.withOpacity(0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-          ),
-
           // Main content
           SafeArea(
             child: Center(
