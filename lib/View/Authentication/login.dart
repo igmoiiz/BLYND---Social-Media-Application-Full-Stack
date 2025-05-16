@@ -1,8 +1,13 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:social_media/Controller/Services/Authentication/auth_services.dart';
 import 'package:social_media/Controller/input_controllers.dart';
+import 'package:social_media/Model/user_model.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -351,10 +356,56 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ],
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: () {
+                                  onPressed: () async {
                                     if (_inputControllers.formKey.currentState!
                                         .validate()) {
-                                      // Login logic here
+                                      // Show loading indicator
+                                      _showLoadingDialog(context);
+
+                                      // Get auth service instance
+                                      final authService =
+                                          Provider.of<AuthServices>(
+                                            context,
+                                            listen: false,
+                                          );
+
+                                      // Attempt login
+                                      final UserModel? user = await authService
+                                          .loginUser(
+                                            email:
+                                                _inputControllers
+                                                    .emailController
+                                                    .text
+                                                    .trim(),
+                                            password:
+                                                _inputControllers
+                                                    .passwordController
+                                                    .text,
+                                          );
+
+                                      // Close loading dialog
+                                      Navigator.pop(context);
+
+                                      if (user != null) {
+                                        // Login successful
+                                        log(
+                                          'Login successful for user: ${user.name}',
+                                        );
+
+                                        // Navigate to home page and clear navigation stack
+                                        Navigator.pushNamedAndRemoveUntil(
+                                          context,
+                                          '/home',
+                                          (route) => false,
+                                        );
+                                      } else {
+                                        // Login failed
+                                        _showErrorDialog(
+                                          context,
+                                          'Login Failed',
+                                          'Invalid email or password. Please try again.',
+                                        );
+                                      }
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
@@ -489,6 +540,88 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
           ),
         ],
       ),
+    );
+  }
+
+  // Show loading dialog
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Signing in...',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Show error dialog
+  void _showErrorDialog(BuildContext context, String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -30,6 +30,7 @@ class AuthServices extends ChangeNotifier {
   File? get profileImage => _profileImage;
   ImagePicker get picker => _picker;
   FirebaseAuth get auth => _auth;
+  FirebaseFirestore get fireStore => _fireStore;
 
   // Method to encrypt password using SHA-256
   String encryptPassword(String password) {
@@ -212,6 +213,63 @@ class AuthServices extends ChangeNotifier {
         log('Auth error: ${e.message}');
       }
       return '';
+    }
+  }
+
+  /// Handle user login
+  Future<UserModel?> loginUser({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      log('Starting user login process');
+
+      // Step 1: Sign in with Firebase Auth
+      log('Step 1: Authenticating with Firebase');
+      final UserCredential authResult = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (authResult.user == null) {
+        log('Authentication failed: No user returned');
+        return null;
+      }
+
+      log(
+        'Firebase authentication successful for user: ${authResult.user!.uid}',
+      );
+
+      // Step 2: Fetch user data from Firestore
+      log('Step 2: Fetching user data from Firestore');
+      final DocumentSnapshot userDoc =
+          await _fireStore.collection('users').doc(authResult.user!.uid).get();
+
+      if (!userDoc.exists) {
+        log('User document not found in Firestore');
+        return null;
+      }
+
+      log('User data retrieved successfully');
+
+      // Step 3: Convert document to UserModel
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final UserModel user = UserModel.fromJson(userData);
+
+      // Step 4: Verify password (optional additional security)
+      final encryptedPassword = encryptPassword(password);
+      if (user.password != encryptedPassword) {
+        log('Password verification failed');
+        // Sign out from Firebase as the password doesn't match
+        await _auth.signOut();
+        return null;
+      }
+
+      log('Login successful');
+      return user;
+    } catch (e) {
+      log('Login error: ${e.toString()}');
+      return null;
     }
   }
 
