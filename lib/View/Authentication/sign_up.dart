@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:social_media/Controller/input_controllers.dart';
+
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
 
@@ -16,14 +18,8 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   final _profileFormKey = GlobalKey<FormState>();
   final _accountFormKey = GlobalKey<FormState>();
 
-  // Controllers
-  final _nameController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _phoneController = TextEditingController();
+  // Controllers Instance
+  final InputControllers _inputControllers = InputControllers();
 
   // State variables
   bool _obscurePassword = true;
@@ -71,13 +67,13 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   void dispose() {
     _animationController.dispose();
     _tabController.dispose();
-    _nameController.dispose();
-    _usernameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    _ageController.dispose();
-    _phoneController.dispose();
+    _inputControllers.nameController.dispose();
+    _inputControllers.usernameController.dispose();
+    _inputControllers.emailController.dispose();
+    _inputControllers.passwordController.dispose();
+    _inputControllers.confirmPasswordController.dispose();
+    _inputControllers.ageController.dispose();
+    _inputControllers.phoneController.dispose();
     super.dispose();
   }
 
@@ -216,7 +212,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     if (value == null || value.trim().isEmpty) {
       return 'Please confirm your password';
     }
-    if (value != _passwordController.text) {
+    if (value != _inputControllers.passwordController.text) {
       return 'Passwords do not match';
     }
     return null;
@@ -532,7 +528,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Full Name
             _buildTextField(
-              controller: _nameController,
+              controller: _inputControllers.nameController,
               label: 'Full Name',
               hint: 'Enter your full name',
               icon: Icons.person_outline,
@@ -543,7 +539,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Username
             _buildTextField(
-              controller: _usernameController,
+              controller: _inputControllers.usernameController,
               label: 'Username',
               hint: 'Choose a unique username',
               icon: Icons.alternate_email,
@@ -554,7 +550,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Age
             _buildTextField(
-              controller: _ageController,
+              controller: _inputControllers.ageController,
               label: 'Age',
               hint: 'Enter your age',
               icon: Icons.cake_outlined,
@@ -597,7 +593,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Email
             _buildTextField(
-              controller: _emailController,
+              controller: _inputControllers.emailController,
               label: 'Email Address',
               hint: 'Enter your email',
               icon: Icons.email_outlined,
@@ -608,7 +604,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Phone
             _buildTextField(
-              controller: _phoneController,
+              controller: _inputControllers.phoneController,
               label: 'Phone Number',
               hint: 'Enter your phone number',
               icon: Icons.phone_outlined,
@@ -619,7 +615,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Password
             _buildTextField(
-              controller: _passwordController,
+              controller: _inputControllers.passwordController,
               label: 'Password',
               hint: 'Create a strong password',
               icon: Icons.lock_outline,
@@ -636,7 +632,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
             // Confirm Password
             _buildTextField(
-              controller: _confirmPasswordController,
+              controller: _inputControllers.confirmPasswordController,
               label: 'Confirm Password',
               hint: 'Confirm your password',
               icon: Icons.lock_outline,

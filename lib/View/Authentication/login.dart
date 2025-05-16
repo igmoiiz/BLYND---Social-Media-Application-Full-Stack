@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:social_media/Controller/input_controllers.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,9 +12,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  //  Instance for Input Controllers
+  final InputControllers _inputControllers = InputControllers();
   bool _obscureText = true;
   bool _rememberMe = false;
   late AnimationController _animationController;
@@ -51,8 +51,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
+    _inputControllers.emailController.dispose();
+    _inputControllers.passwordController.dispose();
     super.dispose();
   }
 
@@ -140,7 +140,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       child: FadeTransition(
                         opacity: _fadeAnimation,
                         child: Form(
-                          key: _formKey,
+                          key: _inputControllers.formKey,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -158,7 +158,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ],
                                 ),
                                 child: TextFormField(
-                                  controller: _emailController,
+                                  controller: _inputControllers.emailController,
                                   keyboardType: TextInputType.emailAddress,
                                   decoration: InputDecoration(
                                     labelText: 'Email',
@@ -216,7 +216,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ],
                                 ),
                                 child: TextFormField(
-                                  controller: _passwordController,
+                                  controller:
+                                      _inputControllers.passwordController,
                                   obscureText: _obscureText,
                                   decoration: InputDecoration(
                                     labelText: 'Password',
@@ -351,7 +352,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                 ),
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
+                                    if (_inputControllers.formKey.currentState!
+                                        .validate()) {
                                       // Login logic here
                                     }
                                   },
