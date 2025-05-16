@@ -1,10 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 import 'package:social_media/Controller/input_controllers.dart';
+import 'package:social_media/Controller/Services/Authentication/auth_services.dart';
+import 'package:provider/provider.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -28,10 +28,6 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   bool _privacyPolicyRead = false;
   int _currentStep = 0;
   late TabController _tabController;
-
-  // Profile photo
-  File? _profileImage;
-  final ImagePicker _picker = ImagePicker();
 
   // Animation controllers
   late AnimationController _animationController;
@@ -77,36 +73,10 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // Take profile photo from camera
-  Future<void> _takePicture() async {
-    final XFile? pickedImage = await _picker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 600,
-    );
-
-    if (pickedImage != null) {
-      setState(() {
-        _profileImage = File(pickedImage.path);
-      });
-    }
-  }
-
-  // Pick profile photo from gallery
-  Future<void> _pickImageFromGallery() async {
-    final XFile? pickedImage = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 600,
-    );
-
-    if (pickedImage != null) {
-      setState(() {
-        _profileImage = File(pickedImage.path);
-      });
-    }
-  }
-
   // Show image source selection dialog
   void _showImageSourceDialog() {
+    final authService = Provider.of<AuthServices>(context, listen: false);
+
     showDialog(
       context: context,
       builder:
@@ -120,7 +90,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                   title: const Text('Take a picture'),
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    _takePicture();
+                    authService.takeProfilePicture();
                   },
                 ),
                 ListTile(
@@ -128,7 +98,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                   title: const Text('Choose from gallery'),
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    _pickImageFromGallery();
+                    authService.pickProfileImageFromGallery();
                   },
                 ),
               ],
@@ -462,47 +432,11 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                           color: colorScheme.secondary.withOpacity(0.5),
                           width: 2,
                         ),
-                        image:
-                            _profileImage != null
-                                ? DecorationImage(
-                                  image: FileImage(_profileImage!),
-                                  fit: BoxFit.cover,
-                                )
-                                : null,
                       ),
-                      child:
-                          _profileImage == null
-                              ? Icon(
-                                Icons.person,
-                                size: 60,
-                                color: colorScheme.primary.withOpacity(0.4),
-                              )
-                              : null,
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: InkWell(
-                      onTap: _showImageSourceDialog,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.primary.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                      child: const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -970,30 +904,90 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   }
 
   // Handle registration process
-  void _handleRegistration() {
-    // Here you would normally connect to your authentication service
-    // and register the user with the provided information
+  void _handleRegistration() async {
+    final authService = Provider.of<AuthServices>(context, listen: false);
 
-    // For now we'll just show a success dialog
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Registration Successful'),
-            content: const Text(
-              'Your account has been created successfully! You can now log in with your credentials.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop(); // Go back to login screen
-                },
-                child: const Text('OK'),
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Call the registration method from AuthServices
+      final success = await authService.registerUser(
+        name: _inputControllers.nameController.text,
+        username: _inputControllers.usernameController.text,
+        email: _inputControllers.emailController.text,
+        password: _inputControllers.passwordController.text,
+        age: _inputControllers.ageController.text,
+        phone: _inputControllers.phoneController.text,
+      );
+
+      // Close loading indicator
+      Navigator.of(context).pop();
+
+      if (success) {
+        // Show success dialog
+        showDialog(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text('Registration Successful'),
+                content: const Text(
+                  'Your account has been created successfully! You can now log in with your credentials.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).pop(); // Go back to login screen
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
               ),
-            ],
-          ),
-    );
+        );
+      } else {
+        // Show error dialog
+        showDialog(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text('Registration Failed'),
+                content: const Text(
+                  'There was a problem creating your account. Please try again.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+        );
+      }
+    } catch (e) {
+      // Close loading indicator if open
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Show error dialog
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Error'),
+              content: Text('An unexpected error occurred: $e'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
+    }
   }
 
   final String _privacyPolicyText = '''

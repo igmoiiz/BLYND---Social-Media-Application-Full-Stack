@@ -1,27 +1,30 @@
-class User {
+class UserModel {
   String? name;
   String? email;
   String? password;
   int? phone;
-  String? gender;
+  String? userName;
   int? age;
+  String? profileImage;
 
-  User({
+  UserModel({
     required this.name,
     required this.email,
     required this.password,
     required this.phone,
-    required this.gender,
+    required this.userName,
     required this.age,
+    required this.profileImage,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) => User(
+  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
     name: json["name"] as String,
     email: json["email"] as String,
     password: json["password"] as String,
     phone: json["phone"] as int,
-    gender: json["gender"] as String,
+    userName: json["userName"] as String,
     age: json["age"] as int,
+    profileImage: json["profileImage"] as String,
   );
 
   Map<String, dynamic> toJson() => {
@@ -29,7 +32,8 @@ class User {
     "email": email,
     "password": password,
     "phone": phone,
-    "gender": gender,
+    "userName": userName,
     "age": age,
+    "profileImage": profileImage,
   };
 }

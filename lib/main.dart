@@ -24,8 +24,8 @@ Future<void> main() async {
   ).then((value) => log("Supabase Initialized: $value"));
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (context) => AuthServices())],
-      builder: (context, child) => const MaterialApp(),
+      providers: [ChangeNotifierProvider(create: (_) => AuthServices())],
+      builder: (context, child) => const MainApp(),
     ),
   );
 }
