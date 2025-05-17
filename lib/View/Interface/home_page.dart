@@ -3,7 +3,8 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:social_media/View/Interface/interface_page.dart';
+import 'package:social_media/View/Interface/Feed/interface_page.dart';
+import 'package:social_media/View/Interface/Post/post_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,7 +20,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final List<Widget> _pages = [
     InterfacePage(),
     Center(child: Text('Search')),
-    Center(child: Text('Post')),
+    CreatePostPage(),
     Center(child: Text('Notifications')),
     Center(child: Text('Profile')),
   ];
