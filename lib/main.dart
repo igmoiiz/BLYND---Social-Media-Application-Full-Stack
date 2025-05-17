@@ -7,8 +7,7 @@ import 'package:social_media/Controller/Services/Authentication/auth_services.da
 import 'package:social_media/Utils/Navigation/routes.dart';
 import 'package:social_media/Utils/Theme/theme.dart';
 import 'package:social_media/Utils/consts.dart';
-// import 'package:social_media/View/Splash/splash_screen.dart';
-import 'package:social_media/View/welcome_screen.dart';
+import 'package:social_media/View/Splash/splash_screen.dart';
 import 'package:social_media/firebase_options.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -44,7 +43,7 @@ class MainApp extends StatelessWidget {
       darkTheme: darkMode,
       title: "BLYND",
       onGenerateRoute: Routes.generateRoute,
-      home: WelcomePage(),
+      home: SplashScreen(),
     );
   }
 }

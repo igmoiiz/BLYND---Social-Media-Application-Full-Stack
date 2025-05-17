@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:social_media/View/Interface/interface_page.dart';
+import 'package:social_media/View/Interface/home_page.dart';
 import 'package:social_media/View/welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
       // User is already logged in, navigate to home screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => InterfacePage()),
+        MaterialPageRoute(builder: (_) => HomePage()),
       );
     } else {
       // User is not logged in, navigate to welcome page
