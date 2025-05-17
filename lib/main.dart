@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Authentication/auth_services.dart';
+import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Utils/Navigation/routes.dart';
 import 'package:social_media/Utils/Theme/theme.dart';
 import 'package:social_media/Utils/consts.dart';
@@ -24,7 +25,10 @@ Future<void> main() async {
   ).then((value) => log("Supabase Initialized: $value"));
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthServices())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthServices()),
+        ChangeNotifierProvider(create: (context) => DatabaseServices()),
+      ],
       builder: (context, child) => const MainApp(),
     ),
   );

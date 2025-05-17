@@ -1,10 +1,12 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:provider/provider.dart';
+import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Controller/input_controllers.dart';
 import 'package:social_media/Utils/Components/custom_button.dart';
+import 'package:social_media/Utils/event_handler.dart';
 
 class CreatePostPage extends StatefulWidget {
   const CreatePostPage({super.key});
@@ -16,6 +18,9 @@ class CreatePostPage extends StatefulWidget {
 class _CreatePostPageState extends State<CreatePostPage> {
   //  Instance for Input Controllers
   final InputControllers _inputControllers = InputControllers();
+
+  //  instance for event handler
+  final EventHandler _eventHandler = EventHandler();
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness;
@@ -24,22 +29,40 @@ class _CreatePostPageState extends State<CreatePostPage> {
         physics: ScrollPhysics(parent: BouncingScrollPhysics()),
         slivers: [
           SliverToBoxAdapter(
-            child: Container(
-              height: MediaQuery.of(context).size.height * .4,
-              margin: EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 10,
-                  children: [Icon(Iconsax.image), Text("Tap to add a Image")],
-                ),
-              ),
+            child: Consumer<DatabaseServices>(
+              builder: (context, databaseProvider, child) {
+                return GestureDetector(
+                  onTap: () => databaseProvider.pickImageFromGallery(),
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * .4,
+                    margin: EdgeInsets.only(
+                      top: 60,
+                      left: 20,
+                      right: 20,
+                      bottom: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                    child: Center(
+                      child:
+                          databaseProvider.image != null
+                              ? Image.file(databaseProvider.image!)
+                              : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                spacing: 10,
+                                children: [
+                                  Icon(Iconsax.image),
+                                  Text("Tap to add a Image"),
+                                ],
+                              ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           SliverToBoxAdapter(
@@ -58,7 +81,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                         return null;
                       }
                     },
-                    controller: _inputControllers.titleController,
+                    controller: _inputControllers.descriptionController,
                     style:
                         isDark == Brightness.dark
                             ? TextStyle(color: Colors.white)
@@ -87,10 +110,26 @@ class _CreatePostPageState extends State<CreatePostPage> {
                 vertical: MediaQuery.sizeOf(context).height * 0.02,
                 horizontal: MediaQuery.sizeOf(context).width * 0.035,
               ),
-              child: CustomButton(
-                isLoading: _inputControllers.isLoading,
-                text: "Post",
-                onTap: () {},
+              child: Consumer<DatabaseServices>(
+                builder: (context, databaseProvider, child) {
+                  return CustomButton(
+                    isLoading: _inputControllers.isLoading,
+                    text: "Post",
+                    onTap: () {
+                      databaseProvider
+                          .createPost(
+                            _inputControllers.descriptionController.text,
+                            context,
+                          )
+                          .then((value) {
+                            _eventHandler.sucessSnackBar(
+                              context,
+                              "Post Successfully Added!",
+                            );
+                          });
+                    },
+                  );
+                },
               ),
             ),
           ),

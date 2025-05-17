@@ -11,7 +11,6 @@ class InputControllers {
   final TextEditingController ageController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
-  final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   //  Form Validators
   final formKey = GlobalKey<FormState>();
