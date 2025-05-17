@@ -73,31 +73,34 @@ class _CreatePostPageState extends State<CreatePostPage> {
               child: Column(
                 spacing: 15,
                 children: [
-                  TextFormField(
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'This Field can\'t be Empty!';
-                      } else {
-                        return null;
-                      }
-                    },
-                    controller: _inputControllers.descriptionController,
-                    style:
-                        isDark == Brightness.dark
-                            ? TextStyle(color: Colors.white)
-                            : TextStyle(color: Colors.black),
-                    decoration: InputDecoration(
-                      labelText: "Enter a Caption",
-                      hintText: "Enter a Caption",
-                      prefixIcon: Icon(Icons.short_text),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
+                  Form(
+                    key: _inputControllers.formKey,
+                    child: TextFormField(
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'This Field can\'t be Empty!';
+                        } else {
+                          return null;
+                        }
+                      },
+                      controller: _inputControllers.descriptionController,
+                      style:
+                          isDark == Brightness.dark
+                              ? TextStyle(color: Colors.white)
+                              : TextStyle(color: Colors.black),
+                      decoration: InputDecoration(
+                        labelText: "Enter a Caption",
+                        hintText: "Enter a Caption",
+                        prefixIcon: Icon(Icons.short_text),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        alignLabelWithHint: true,
                       ),
-                      alignLabelWithHint: true,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
+                      minLines: 1,
                     ),
-                    keyboardType: TextInputType.multiline,
-                    maxLines: null,
-                    minLines: 1,
                   ),
                 ],
               ),
@@ -116,17 +119,19 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     isLoading: _inputControllers.isLoading,
                     text: "Post",
                     onTap: () {
-                      databaseProvider
-                          .createPost(
-                            _inputControllers.descriptionController.text,
-                            context,
-                          )
-                          .then((value) {
-                            _eventHandler.sucessSnackBar(
+                      if (_inputControllers.formKey.currentState!.validate()) {
+                        databaseProvider
+                            .createPost(
+                              _inputControllers.descriptionController.text,
                               context,
-                              "Post Successfully Added!",
-                            );
-                          });
+                            )
+                            .then((value) {
+                              _eventHandler.sucessSnackBar(
+                                context,
+                                "Post Successfully Added!",
+                              );
+                            });
+                      }
                     },
                   );
                 },

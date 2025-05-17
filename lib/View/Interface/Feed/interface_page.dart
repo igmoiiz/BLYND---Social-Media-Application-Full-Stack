@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:provider/provider.dart';
+import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Utils/Components/post_card.dart';
 
 class InterfacePage extends StatelessWidget {
@@ -9,9 +12,10 @@ class InterfacePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
-    final size = MediaQuery.sizeOf(context);
+    // final size = MediaQuery.sizeOf(context);
     return Scaffold(
       body: CustomScrollView(
+        physics: ScrollPhysics(parent: BouncingScrollPhysics()),
         slivers: [
           SliverAppBar(
             elevation: 0.0,
@@ -33,17 +37,57 @@ class InterfacePage extends StatelessWidget {
               ),
             ],
           ),
-          SliverList.builder(
-            itemCount: 10000,
-            itemBuilder: (context, index) {
-              return PostCard(
-                userName: "Moiz Baloch",
-                userImageUrl: " ",
-                postImageUrl: " ",
-                description: "Hello",
-                onLike: () {},
-                onComment: () {},
-                onSave: () {},
+
+          Consumer<DatabaseServices>(
+            builder: (context, databaseProvider, child) {
+              return StreamBuilder(
+                stream:
+                    databaseProvider.fireStore.collection("Posts").snapshots(),
+                builder: (context, AsyncSnapshot snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return SliverToBoxAdapter(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        spacing: 10,
+                        children: [
+                          CircularProgressIndicator(
+                            backgroundColor: Colors.white,
+                            valueColor: AlwaysStoppedAnimation(color.primary),
+                          ),
+                          Text("Loading Please wait..."),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return SliverToBoxAdapter(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        spacing: 10,
+                        children: [
+                          Icon(Icons.error_outline_rounded),
+                          Text("Something went wrong: ${snapshot.error}"),
+                        ],
+                      ),
+                    );
+                  }
+                  final data = snapshot.data!.docs;
+                  return SliverList.builder(
+                    itemCount: data.length,
+                    itemBuilder: (context, index) {
+                      return PostCard(
+                        userName: data[index]['userName'],
+                        userImageUrl: data[index]['userProfileImage'],
+                        postImageUrl: data[index]['postImage'],
+                        description: data[index]['caption'],
+                        onLike: () {},
+                        onComment: () {},
+                        onSave: () {},
+                      );
+                    },
+                  );
+                },
               );
             },
           ),

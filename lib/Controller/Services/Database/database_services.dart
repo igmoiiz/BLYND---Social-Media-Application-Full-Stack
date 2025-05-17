@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -38,8 +39,11 @@ class DatabaseServices extends ChangeNotifier {
   //  Method to pick an image from the gallery
   Future<void> pickImageFromGallery() async {
     try {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      log("Image Picked from Gaallery");
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85, // Optimize image quality
+      );
+      log("Image Picked from Gallery");
       if (pickedFile != null) {
         _image = File(pickedFile.path);
         log('Image file path: ${_image!.path}');
@@ -48,72 +52,153 @@ class DatabaseServices extends ChangeNotifier {
       }
       notifyListeners();
     } catch (error) {
-      log("Error While Picking Up the Image: $error");
+      log("Error While Picking Up the Image: $error", error: error);
+      rethrow;
     }
   }
 
-  //  Methodd to Create a new Post
-  Future<void> createPost(String? caaption, BuildContext context) async {
-    //  Check if the imaage is selectedd or not
-    if (_image == null) {
-      _eventHandler.errorSnackBar(context, "Please Select a Image");
-      notifyListeners();
-      return;
-    }
-
-    //  Check if the captions are empty or not
-    if (_inputControllers.descriptionController.text.isEmpty) {
-      _eventHandler.errorSnackBar(
-        context,
-        "Please Write a caption for the post",
-      );
-    }
-
-    String postId = DateTime.now().millisecondsSinceEpoch.toString();
-    String fileName = 'post_$postId.jpg';
+  //  Method to Create a new Post
+  Future<void> createPost(String? caption, BuildContext context) async {
     try {
+      // Validate user authentication
+      if (_auth.currentUser == null) {
+        _eventHandler.errorSnackBar(context, "User not authenticated");
+        return;
+      }
+
+      // Validate image
+      if (_image == null) {
+        _eventHandler.errorSnackBar(context, "Please Select an Image");
+        notifyListeners();
+        return;
+      }
+
+      // Validate caption
+      if (caption == null || caption.trim().isEmpty) {
+        _eventHandler.errorSnackBar(
+          context,
+          "Please Write a caption for the post",
+        );
+        return;
+      }
+
+      // Validate image file
+      if (!await _image!.exists()) {
+        _eventHandler.errorSnackBar(context, "Selected image file is invalid");
+        return;
+      }
+
+      // Check image file size (max 5MB)
+      final imageSize = await _image!.length();
+      if (imageSize > 5 * 1024 * 1024) {
+        _eventHandler.errorSnackBar(
+          context,
+          "Image size should be less than 5MB",
+        );
+        return;
+      }
+
+      String postId = DateTime.now().millisecondsSinceEpoch.toString();
+      String fileName = 'post_$postId.jpg';
+
       _inputControllers.isLoading = true;
       notifyListeners();
 
-      //  Upload the image to Supaabase Storaage Bucket
-      final bytes = await _image!.readAsBytes();
-      await _supabase.storage.from("posts").uploadBinary(fileName, bytes);
+      try {
+        //  Upload the image to Supabase Storage Bucket
+        final bytes = await _image!.readAsBytes();
+        await _supabase.storage.from("posts").uploadBinary(fileName, bytes);
 
-      //  Get the public url of the uploaded imaage
-      _imageUrl = supabase.storage.from("posts").getPublicUrl(fileName);
+        //  Get the public url of the uploaded image
+        _imageUrl = supabase.storage.from("posts").getPublicUrl(fileName);
 
-      // First, fetch the user document
-      DocumentSnapshot userDoc =
-          await _fireStore
-              .collection("users")
-              .doc(_auth.currentUser!.uid)
-              .get();
+        // Fetch user document with timeout
+        DocumentSnapshot userDoc = await _fireStore
+            .collection("users")
+            .doc(_auth.currentUser!.uid)
+            .get()
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw TimeoutException('Failed to fetch user data');
+              },
+            );
 
-      // Extract the profile image URL from the document
-      String userProfileImage = userDoc.get('profileImage') as String;
+        // Validate user document
+        if (!userDoc.exists) {
+          throw Exception('User profile not found');
+        }
 
-      //  organizing the data
-      final post = PostModel(
-        postId: postId,
-        userEmail: _auth.currentUser!.email,
-        userId: _auth.currentUser!.uid,
-        userName: userDoc['name'],
-        userProfileImage: userProfileImage,
-        caption: caaption!,
-        postImage: imageUrl!,
-        likeCount: 0,
-      );
-      //  Upload Data to Firebase FireStore
-      await _fireStore.collection("Posts").doc(postId).set(post.toJson()).then((
-        value,
-      ) {
+        // Extract and validate user data
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final userName = userData['name'] as String?;
+        final userProfileImage = userData['profileImage'] as String?;
+
+        if (userName == null || userProfileImage == null) {
+          throw Exception('Invalid user profile data');
+        }
+
+        //  organizing the data
+        final post = PostModel(
+          postId: postId,
+          userEmail: _auth.currentUser!.email ?? '',
+          userId: _auth.currentUser!.uid,
+          userName: userName,
+          userProfileImage: userProfileImage,
+          caption: caption,
+          postImage: _imageUrl!,
+          likeCount: 0,
+        );
+
+        //  Upload Data to Firebase FireStore with timeout
+        await _fireStore
+            .collection("Posts")
+            .doc(postId)
+            .set(post.toJson())
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                throw TimeoutException('Failed to save post data');
+              },
+            );
+
+        // Success handling
         _inputControllers.isLoading = false;
         _inputControllers.descriptionController.clear();
         _image = null;
+        _imageUrl = null;
         notifyListeners();
-      });
-    } catch (error) {
-      log("Error occured while creating post :$error");
+
+        _eventHandler.sucessSnackBar(context, "Post created successfully!");
+      } catch (error) {
+        // Cleanup on error
+        if (_imageUrl != null) {
+          try {
+            await _supabase.storage.from("posts").remove([fileName]);
+          } catch (e) {
+            log("Error cleaning up uploaded image: $e");
+          }
+        }
+        rethrow;
+      }
+    } on TimeoutException catch (error) {
+      _eventHandler.errorSnackBar(
+        context,
+        "Operation timed out. Please try again.",
+      );
+      log("Timeout error: $error");
+    } on FirebaseException catch (error) {
+      _eventHandler.errorSnackBar(context, "Firebase error: ${error.message}");
+      log("Firebase error: $error");
+    } on Exception catch (error) {
+      _eventHandler.errorSnackBar(
+        context,
+        "An error occurred: ${error.toString()}",
+      );
+      log("Error occurred while creating post: $error");
+    } finally {
+      _inputControllers.isLoading = false;
+      notifyListeners();
     }
   }
 }
