@@ -229,25 +229,24 @@ dependencies:
 ## 📱 Screenshots
 
 <div align="center">
-  <img src="assets/screenshots/profile.png" alt="Profile Page" width="200"/>
-  <img src="assets/screenshots/feed.png" alt="Feed Page" width="200"/>
-  <img src="assets/screenshots/settings.png" alt="Settings Page" width="200"/>
+  <img src="assets/preview/BLYND Profile.jpg" alt="Profile Page" width="200"/>
+  <img src="assets/preview/BLYND Feed.jpg" alt="Feed Page" width="200"/>
+  <img src="assets/preview/BLYND Settings.jpg" alt="Settings Page" width="200"/>
 </div>
 
 ## 👥 Authors
 
-- **Your Name** - *Initial work* - [Your GitHub](https://github.com/yourusername)
+- **Moiz Baloch** - *Initial work* - [GitHub](https://github.com/igmoiiz)
 
 ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
 - Firebase for backend services
 - Supabase for storage solutions
-- All contributors who have helped shape this project
 
 ## 📞 Support
 
-For support, email your.email@example.com or join our Slack channel.
+For support, email moaiz3110@gmail.com.
 
 ---
 
