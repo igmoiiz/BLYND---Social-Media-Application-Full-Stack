@@ -5,9 +5,11 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:social_media/Model/user_model.dart';
+import 'package:social_media/View/Authentication/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthServices extends ChangeNotifier {
@@ -356,6 +358,58 @@ class AuthServices extends ChangeNotifier {
       return true;
     } catch (e) {
       log('Registration error: ${e.toString()}');
+      return false;
+    }
+  }
+
+  // Method to sign the user out of the software
+  Future<bool> signUserOut(BuildContext context) async {
+    try {
+      // Show loading indicator
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signing out...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      // Clear any cached data
+      _profileImage = null;
+      imageUrl = '';
+      notifyListeners();
+
+      // Sign out from Firebase
+      await _auth.signOut();
+
+      // Sign out from Supabase if there's an active session
+      if (_supabase.auth.currentSession != null) {
+        await _supabase.auth.signOut();
+      }
+
+      // Clear any stored tokens or credentials
+      await _fireStore.terminate();
+
+      if (context.mounted) {
+        // Navigate to login page
+        Navigator.of(context).pushAndRemoveUntil(
+          CupertinoPageRoute(builder: (context) => LoginPage()),
+          (route) => false, // Remove all previous routes
+        );
+      }
+
+      return true;
+    } catch (error) {
+      log("Error Signing Out: $error");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: ${error.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return false;
     }
   }

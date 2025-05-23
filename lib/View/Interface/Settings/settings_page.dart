@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:social_media/Controller/Services/Authentication/auth_services.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -19,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _bioController = TextEditingController();
   bool _isLoading = false;
   bool _isUpdatingProfile = false;
+  bool _isSigningOut = false;
 
   @override
   void initState() {
@@ -92,6 +94,37 @@ class _SettingsPageState extends State<SettingsPage> {
     } finally {
       if (mounted) {
         setState(() => _isUpdatingProfile = false);
+      }
+    }
+  }
+
+  Future<void> _handleSignOut() async {
+    if (_isLoading || _isUpdatingProfile || _isSigningOut) return;
+
+    setState(() => _isSigningOut = true);
+
+    try {
+      final success = await context.read<AuthServices>().signUserOut(context);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to sign out. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSigningOut = false);
       }
     }
   }
@@ -325,11 +358,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         width: double.infinity,
                         child: OutlinedButton(
                           onPressed:
-                              (_isLoading || _isUpdatingProfile)
+                              (_isLoading ||
+                                      _isUpdatingProfile ||
+                                      _isSigningOut)
                                   ? null
-                                  : () => context
-                                      .read<DatabaseServices>()
-                                      .signOut(context),
+                                  : _handleSignOut,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: theme.colorScheme.error,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -338,13 +371,39 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                             side: BorderSide(color: theme.colorScheme.error),
                           ),
-                          child: Text(
-                            'Logout',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child:
+                              _isSigningOut
+                                  ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                theme.colorScheme.error,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Signing out...',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                  : Text(
+                                    'Logout',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                         ),
                       ),
                     ],
