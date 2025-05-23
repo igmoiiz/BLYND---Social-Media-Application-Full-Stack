@@ -176,6 +176,10 @@ class InterfacePage extends StatelessWidget {
                           createdAt: post.createdAt ?? DateTime.now(),
                           likeCount: post.likeCount ?? 0,
                           comments: post.comments,
+                          postId: post.postId!,
+                          userEmail: post.userEmail ?? '',
+                          userId: post.userId ?? '',
+                          likedBy: post.likedBy ?? [],
                         );
                       },
                     );
