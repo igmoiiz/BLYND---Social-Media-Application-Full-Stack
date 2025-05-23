@@ -7,6 +7,7 @@ class PostModel {
   String? postImage;
   String? caption;
   int? likeCount;
+  DateTime? createdAt;
 
   PostModel({
     this.postId,
@@ -17,6 +18,7 @@ class PostModel {
     this.userId,
     this.userName,
     this.userProfileImage,
+    this.createdAt,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,10 @@ class PostModel {
       postImage: json['postImage'] as String,
       caption: json['caption'] as String,
       likeCount: json['likeCount'] as int,
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'] as String)
+              : null,
     );
   }
 
@@ -42,6 +48,7 @@ class PostModel {
       'postImage': postImage,
       'caption': caption,
       'likeCount': likeCount,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

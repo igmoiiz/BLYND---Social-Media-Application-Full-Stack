@@ -14,6 +14,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback onLike;
   final VoidCallback onComment;
   final VoidCallback onSave;
+  final DateTime createdAt;
 
   const PostCard({
     super.key,
@@ -26,6 +27,7 @@ class PostCard extends StatelessWidget {
     required this.onLike,
     required this.onComment,
     required this.onSave,
+    required this.createdAt,
   });
 
   @override
@@ -93,6 +95,18 @@ class PostCard extends StatelessWidget {
             ),
           ),
 
+          // Add timestamp display
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Text(
+              _formatTimestamp(createdAt),
+              style: GoogleFonts.poppins(
+                color: theme.colorScheme.onBackground.withOpacity(0.6),
+                fontSize: 12,
+              ),
+            ),
+          ),
+
           const SizedBox(height: 6),
 
           /// Action Buttons
@@ -139,5 +153,21 @@ class PostCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    if (difference.inSeconds < 60) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
   }
 }

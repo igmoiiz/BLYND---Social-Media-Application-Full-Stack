@@ -150,6 +150,7 @@ class DatabaseServices extends ChangeNotifier {
           caption: caption,
           postImage: _imageUrl!,
           likeCount: 0,
+          createdAt: DateTime.now(),
         );
 
         //  Upload Data to Firebase FireStore with timeout

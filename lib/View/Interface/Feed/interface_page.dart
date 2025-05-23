@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Utils/Components/post_card.dart';
+import 'package:social_media/Model/post_model.dart';
 
 class InterfacePage extends StatelessWidget {
   const InterfacePage({super.key});
@@ -75,14 +76,19 @@ class InterfacePage extends StatelessWidget {
                   return SliverList.builder(
                     itemCount: data.length,
                     itemBuilder: (context, index) {
+                      final post = PostModel.fromJson(data[index].data());
                       return PostCard(
-                        userName: data[index]['userName'],
-                        userImageUrl: data[index]['userProfileImage'],
-                        postImageUrl: data[index]['postImage'],
-                        description: data[index]['caption'],
+                        userName: post.userName ?? 'Unknown User',
+                        userImageUrl:
+                            post.userProfileImage ??
+                            'https://via.placeholder.com/150',
+                        postImageUrl:
+                            post.postImage ?? 'https://via.placeholder.com/150',
+                        description: post.caption ?? '',
                         onLike: () {},
                         onComment: () {},
                         onSave: () {},
+                        createdAt: post.createdAt ?? DateTime.now(),
                       );
                     },
                   );
