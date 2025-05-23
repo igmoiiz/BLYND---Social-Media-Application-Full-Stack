@@ -36,3 +36,7 @@ flutter:
   assets:
   - assets/icons/icon_blynd_light.png
   - assets/icons/icon_blynd_dark.png
+  - assets/preview/BLYND Feed.jpg
+  - assets/preview/BLYND Settings.jpg
+  - assets/preview/BLYND Profile.jpg
+  - assets/preview/Blynd.png
