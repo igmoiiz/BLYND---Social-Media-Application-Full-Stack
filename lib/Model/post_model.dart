@@ -1,56 +1,29 @@
 class PostModel {
-  String? postId;
-  String? userEmail;
-  String? userId;
-  String? userProfileImage;
-  String? userName;
-  String? postImage;
-  String? caption;
-  int? likeCount;
-  DateTime? createdAt;
-  List<String>? likedBy;
-  List<Map<String, dynamic>>? comments;
+  final String? postId;
+  final String? userEmail;
+  final String? userId;
+  final String? userName;
+  final String? userProfileImage;
+  final String? caption;
+  final String? postImage;
+  final int? likeCount;
+  final List<String>? likedBy;
+  final List<Map<String, dynamic>>? comments;
+  final DateTime? createdAt;
 
   PostModel({
     this.postId,
     this.userEmail,
-    this.postImage,
-    this.caption,
-    this.likeCount,
     this.userId,
     this.userName,
     this.userProfileImage,
+    this.caption,
+    this.postImage,
+    this.likeCount = 0,
+    this.likedBy = const [],
+    this.comments = const [],
     this.createdAt,
-    this.likedBy,
-    this.comments,
   });
-
-  factory PostModel.fromJson(Map<String, dynamic> json) {
-    return PostModel(
-      postId: json['postId'] as String,
-      userEmail: json['userEmail'] as String,
-      userId: json['userId'] as String,
-      userName: json['userName'] as String,
-      userProfileImage: json['userProfileImage'] as String,
-      postImage: json['postImage'] as String,
-      caption: json['caption'] as String,
-      likeCount: json['likeCount'] as int,
-      createdAt:
-          json['createdAt'] != null
-              ? DateTime.parse(json['createdAt'] as String)
-              : null,
-      likedBy:
-          (json['likedBy'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      comments:
-          (json['comments'] as List<dynamic>?)
-              ?.map((e) => e as Map<String, dynamic>)
-              .toList() ??
-          [],
-    );
-  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -59,12 +32,37 @@ class PostModel {
       'userId': userId,
       'userName': userName,
       'userProfileImage': userProfileImage,
-      'postImage': postImage,
       'caption': caption,
-      'likeCount': likeCount,
-      'createdAt': createdAt?.toIso8601String(),
-      'likedBy': likedBy,
-      'comments': comments,
+      'postImage': postImage,
+      'likeCount': likeCount ?? 0,
+      'likedBy': likedBy ?? [],
+      'comments': comments ?? [],
+      'createdAt': createdAt?.toUtc().toIso8601String(),
     };
+  }
+
+  factory PostModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDateTime(String? dateStr) {
+      if (dateStr == null) return null;
+      try {
+        return DateTime.parse(dateStr).toUtc();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    return PostModel(
+      postId: json['postId'],
+      userEmail: json['userEmail'],
+      userId: json['userId'],
+      userName: json['userName'],
+      userProfileImage: json['userProfileImage'],
+      caption: json['caption'],
+      postImage: json['postImage'],
+      likeCount: json['likeCount'] ?? 0,
+      likedBy: List<String>.from(json['likedBy'] ?? []),
+      comments: List<Map<String, dynamic>>.from(json['comments'] ?? []),
+      createdAt: parseDateTime(json['createdAt']) ?? DateTime.now().toUtc(),
+    );
   }
 }

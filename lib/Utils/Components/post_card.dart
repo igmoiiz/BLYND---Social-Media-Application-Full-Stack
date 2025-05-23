@@ -38,6 +38,7 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -47,12 +48,35 @@ class PostCard extends StatelessWidget {
           /// Header
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: CachedNetworkImageProvider(userImageUrl),
-                onBackgroundImageError: (exception, stackTrace) {
-                  // Handle error if needed
-                },
+              ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl: userImageUrl,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  useOldImageOnUrlChange: true,
+                  fadeInDuration: const Duration(milliseconds: 200),
+                  placeholder:
+                      (context, url) => Container(
+                        color: theme.colorScheme.surface,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.primary,
+                            ),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                  errorWidget:
+                      (context, url, error) => Container(
+                        color: theme.colorScheme.surface,
+                        child: Icon(
+                          Iconsax.user,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -76,14 +100,14 @@ class PostCard extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: postImageUrl,
               width: double.infinity,
-              height: MediaQuery.of(context).size.width,
+              height: size.width,
               fit: BoxFit.cover,
-              memCacheWidth: (MediaQuery.of(context).size.width * 2).toInt(),
-              memCacheHeight: (MediaQuery.of(context).size.width * 2).toInt(),
+              useOldImageOnUrlChange: true,
+              fadeInDuration: const Duration(milliseconds: 300),
               placeholder:
                   (context, url) => Container(
                     width: double.infinity,
-                    height: MediaQuery.of(context).size.width,
+                    height: size.width,
                     color: theme.colorScheme.surface,
                     child: Center(
                       child: CircularProgressIndicator(
@@ -97,13 +121,26 @@ class PostCard extends StatelessWidget {
               errorWidget:
                   (context, url, error) => Container(
                     width: double.infinity,
-                    height: MediaQuery.of(context).size.width,
+                    height: size.width,
                     color: theme.colorScheme.surface,
                     child: Center(
-                      child: Icon(
-                        Iconsax.image,
-                        color: theme.colorScheme.primary,
-                        size: 40,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Iconsax.image,
+                            color: theme.colorScheme.primary,
+                            size: 40,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Failed to load image',
+                            style: GoogleFonts.poppins(
+                              color: theme.colorScheme.primary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

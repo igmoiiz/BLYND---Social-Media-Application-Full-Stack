@@ -140,7 +140,7 @@ class DatabaseServices extends ChangeNotifier {
           throw Exception('Invalid user profile data');
         }
 
-        //  organizing the data
+        //  organizing the data with explicit timestamp
         final post = PostModel(
           postId: postId,
           userEmail: _auth.currentUser!.email ?? '',
@@ -150,7 +150,7 @@ class DatabaseServices extends ChangeNotifier {
           caption: caption,
           postImage: _imageUrl!,
           likeCount: 0,
-          createdAt: DateTime.now(),
+          createdAt: DateTime.now().toUtc(), // Use UTC time for consistency
         );
 
         //  Upload Data to Firebase FireStore with timeout
@@ -219,19 +219,25 @@ class DatabaseServices extends ChangeNotifier {
       final likedBy = post.likedBy ?? [];
       final userId = _auth.currentUser!.uid;
 
+      // Create a batch write
+      final batch = _fireStore.batch();
+
       if (likedBy.contains(userId)) {
         // Unlike
-        await postRef.update({
+        batch.update(postRef, {
           'likedBy': FieldValue.arrayRemove([userId]),
           'likeCount': FieldValue.increment(-1),
         });
       } else {
         // Like
-        await postRef.update({
+        batch.update(postRef, {
           'likedBy': FieldValue.arrayUnion([userId]),
           'likeCount': FieldValue.increment(1),
         });
       }
+
+      // Commit the batch
+      await batch.commit();
     } catch (error) {
       log("Error toggling like: $error");
       rethrow;
@@ -260,9 +266,16 @@ class DatabaseServices extends ChangeNotifier {
         'createdAt': DateTime.now().toIso8601String(),
       };
 
-      await _fireStore.collection("Posts").doc(postId).update({
+      // Create a batch write
+      final batch = _fireStore.batch();
+      final postRef = _fireStore.collection("Posts").doc(postId);
+
+      batch.update(postRef, {
         'comments': FieldValue.arrayUnion([commentData]),
       });
+
+      // Commit the batch
+      await batch.commit();
     } catch (error) {
       log("Error adding comment: $error");
       rethrow;
@@ -273,5 +286,39 @@ class DatabaseServices extends ChangeNotifier {
   bool hasUserLikedPost(List<String>? likedBy) {
     if (_auth.currentUser == null || likedBy == null) return false;
     return likedBy.contains(_auth.currentUser!.uid);
+  }
+
+  // Method to get real-time updates for a post
+  Stream<PostModel> getPostStream(String postId) {
+    return _fireStore
+        .collection("Posts")
+        .doc(postId)
+        .snapshots()
+        .map((doc) => PostModel.fromJson(doc.data()!));
+  }
+
+  // Method to get real-time updates for all posts
+  Stream<List<PostModel>> getPostsStream() {
+    return _fireStore
+        .collection("Posts")
+        .orderBy('createdAt', descending: true) // Ensure newest first
+        .limit(20)
+        .snapshots()
+        .map((snapshot) {
+          // Convert to list and sort again to ensure proper ordering
+          final posts =
+              snapshot.docs
+                  .map((doc) => PostModel.fromJson(doc.data()))
+                  .toList();
+
+          // Sort by createdAt in descending order (newest first)
+          posts.sort(
+            (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
+              a.createdAt ?? DateTime.now(),
+            ),
+          );
+
+          return posts;
+        });
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Utils/Components/post_card.dart';
@@ -13,11 +14,10 @@ class InterfacePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
-    // final size = MediaQuery.sizeOf(context);
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
-          physics: ScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const ScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
             SliverAppBar(
               elevation: 0.0,
@@ -42,12 +42,9 @@ class InterfacePage extends StatelessWidget {
 
             Consumer<DatabaseServices>(
               builder: (context, databaseProvider, child) {
-                return StreamBuilder(
-                  stream:
-                      databaseProvider.fireStore
-                          .collection("Posts")
-                          .snapshots(),
-                  builder: (context, AsyncSnapshot snapshot) {
+                return StreamBuilder<List<PostModel>>(
+                  stream: databaseProvider.getPostsStream(),
+                  builder: (context, AsyncSnapshot<List<PostModel>> snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return SliverToBoxAdapter(
                         child: Container(
@@ -80,21 +77,76 @@ class InterfacePage extends StatelessWidget {
 
                     if (snapshot.hasError) {
                       return SliverToBoxAdapter(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 10,
-                          children: [
-                            Icon(Icons.error_outline_rounded),
-                            Text("Something went wrong: ${snapshot.error}"),
-                          ],
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.8,
+                          color: Theme.of(context).colorScheme.surface,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  color: color.error,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "Something went wrong: ${snapshot.error}",
+                                  style: GoogleFonts.poppins(
+                                    color: color.error,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     }
-                    final data = snapshot.data!.docs;
+
+                    final posts = snapshot.data;
+                    if (posts == null || posts.isEmpty) {
+                      return SliverToBoxAdapter(
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.8,
+                          color: Theme.of(context).colorScheme.surface,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Iconsax.image,
+                                  color: color.primary,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "No posts yet",
+                                  style: GoogleFonts.poppins(
+                                    color: color.primary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Ensure posts are sorted by createdAt in descending order
+                    final sortedPosts = List<PostModel>.from(posts)..sort(
+                      (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
+                        a.createdAt ?? DateTime.now(),
+                      ),
+                    );
+
                     return SliverList.builder(
-                      itemCount: data.length,
+                      itemCount: sortedPosts.length,
                       itemBuilder: (context, index) {
-                        final post = PostModel.fromJson(data[index].data());
+                        final post = sortedPosts[index];
                         return PostCard(
                           userName: post.userName ?? 'Unknown User',
                           userImageUrl:
