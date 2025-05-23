@@ -1,7 +1,7 @@
 # Social Media App
 
 <div align="center">
-  <img src="assets/logo.png" alt="Social Media App Logo" width="200"/>
+  <img src="assets/preview/Blynd.png" alt="Social Media App Logo" width="200"/>
   
   [![Flutter](https://img.shields.io/badge/Flutter-3.19.0-blue.svg)](https://flutter.dev)
   [![Firebase](https://img.shields.io/badge/Firebase-10.8.0-orange.svg)](https://firebase.google.com)
