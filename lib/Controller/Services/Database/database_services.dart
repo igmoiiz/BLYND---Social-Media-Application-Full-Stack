@@ -344,6 +344,262 @@ class DatabaseServices extends ChangeNotifier {
     }
   }
 
+  // Method to get user profile data with followers/following counts
+  Future<Map<String, dynamic>> getUserProfile({String? userId}) async {
+    try {
+      final targetUserId = userId ?? _auth.currentUser?.uid;
+      if (targetUserId == null) throw Exception('User not authenticated');
+
+      final userDoc =
+          await _fireStore.collection("users").doc(targetUserId).get();
+
+      if (!userDoc.exists) throw Exception('User profile not found');
+
+      final userData = userDoc.data() ?? {};
+
+      // Get followers and following counts
+      final followersCount =
+          await _fireStore
+              .collection("followers")
+              .doc(targetUserId)
+              .collection("userFollowers")
+              .count()
+              .get();
+
+      final followingCount =
+          await _fireStore
+              .collection("following")
+              .doc(targetUserId)
+              .collection("userFollowing")
+              .count()
+              .get();
+
+      // Get posts count
+      final postsCount =
+          await _fireStore
+              .collection("Posts")
+              .where('userId', isEqualTo: targetUserId)
+              .count()
+              .get();
+
+      return {
+        ...userData,
+        'followersCount': followersCount.count,
+        'followingCount': followingCount.count,
+        'postsCount': postsCount.count,
+        'isFollowing': await isFollowingUser(targetUserId),
+      };
+    } catch (e) {
+      log("Error getting user profile: $e");
+      rethrow;
+    }
+  }
+
+  // Method to get user posts
+  Stream<List<PostModel>> getUserPosts({String? userId}) {
+    final targetUserId = userId ?? _auth.currentUser?.uid;
+    if (targetUserId == null) return Stream.value([]);
+
+    return _fireStore
+        .collection("Posts")
+        .where('userId', isEqualTo: targetUserId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['postId'] = doc.id;
+                return PostModel.fromJson(data);
+              }).toList(),
+        );
+  }
+
+  // Method to follow/unfollow a user
+  Future<void> toggleFollow(String targetUserId) async {
+    try {
+      if (_auth.currentUser == null) throw Exception('User not authenticated');
+      if (_auth.currentUser!.uid == targetUserId) return;
+
+      final batch = _fireStore.batch();
+      final currentUserId = _auth.currentUser!.uid;
+
+      // Check if already following
+      final isFollowing = await isFollowingUser(targetUserId);
+
+      if (isFollowing) {
+        // Unfollow
+        batch.delete(
+          _fireStore
+              .collection("following")
+              .doc(currentUserId)
+              .collection("userFollowing")
+              .doc(targetUserId),
+        );
+        batch.delete(
+          _fireStore
+              .collection("followers")
+              .doc(targetUserId)
+              .collection("userFollowers")
+              .doc(currentUserId),
+        );
+      } else {
+        // Follow
+        batch.set(
+          _fireStore
+              .collection("following")
+              .doc(currentUserId)
+              .collection("userFollowing")
+              .doc(targetUserId),
+          {'timestamp': FieldValue.serverTimestamp()},
+        );
+        batch.set(
+          _fireStore
+              .collection("followers")
+              .doc(targetUserId)
+              .collection("userFollowers")
+              .doc(currentUserId),
+          {'timestamp': FieldValue.serverTimestamp()},
+        );
+      }
+
+      await batch.commit();
+      notifyListeners();
+    } catch (e) {
+      log("Error toggling follow: $e");
+      rethrow;
+    }
+  }
+
+  // Helper method to check if current user is following a user
+  Future<bool> isFollowingUser(String targetUserId) async {
+    final currentUser = auth.currentUser;
+    if (currentUser == null) return false;
+
+    final followingDoc =
+        await fireStore
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('following')
+            .doc(targetUserId)
+            .get();
+
+    return followingDoc.exists;
+  }
+
+  // Method to get user followers
+  Stream<List<Map<String, dynamic>>> getUserFollowers(String userId) {
+    return _fireStore
+        .collection("followers")
+        .doc(userId)
+        .collection("userFollowers")
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final followers = <Map<String, dynamic>>[];
+          for (var doc in snapshot.docs) {
+            final userDoc =
+                await _fireStore.collection("users").doc(doc.id).get();
+            if (userDoc.exists) {
+              followers.add({...userDoc.data()!, 'userId': doc.id});
+            }
+          }
+          return followers;
+        });
+  }
+
+  // Method to get user following
+  Stream<List<Map<String, dynamic>>> getUserFollowing(String userId) {
+    return _fireStore
+        .collection("following")
+        .doc(userId)
+        .collection("userFollowing")
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final following = <Map<String, dynamic>>[];
+          for (var doc in snapshot.docs) {
+            final userDoc =
+                await _fireStore.collection("users").doc(doc.id).get();
+            if (userDoc.exists) {
+              following.add({...userDoc.data()!, 'userId': doc.id});
+            }
+          }
+          return following;
+        });
+  }
+
+  // Method to update user profile
+  Future<void> updateUserProfile({
+    String? name,
+    String? bio,
+    File? profileImage,
+  }) async {
+    try {
+      if (_auth.currentUser == null) throw Exception('User not authenticated');
+
+      final userRef = _fireStore
+          .collection("users")
+          .doc(_auth.currentUser!.uid);
+      final updates = <String, dynamic>{};
+
+      if (name != null) updates['name'] = name;
+      if (bio != null) updates['bio'] = bio;
+
+      if (profileImage != null) {
+        try {
+          // Generate a unique filename using timestamp
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final fileName = 'profile_${_auth.currentUser!.uid}_$timestamp.jpg';
+
+          // Upload new profile image to Supabase
+          final bytes = await profileImage.readAsBytes();
+          await _supabase.storage.from("users").uploadBinary(fileName, bytes);
+
+          // Get public URL
+          final imageUrl = _supabase.storage
+              .from("users")
+              .getPublicUrl(fileName);
+          updates['profileImage'] = imageUrl;
+
+          // Delete old profile image if it exists
+          final oldUserDoc = await userRef.get();
+          if (oldUserDoc.exists) {
+            final oldData = oldUserDoc.data() as Map<String, dynamic>;
+            final oldImageUrl = oldData['profileImage'] as String?;
+            if (oldImageUrl != null) {
+              try {
+                final oldFileName = oldImageUrl.split('/').last;
+                await _supabase.storage.from("users").remove([oldFileName]);
+              } catch (e) {
+                log("Error deleting old profile image: $e");
+              }
+            }
+          }
+        } catch (e) {
+          log("Error handling profile image: $e");
+          rethrow;
+        }
+      }
+
+      await userRef.update(updates);
+      notifyListeners();
+    } catch (e) {
+      log("Error updating user profile: $e");
+      rethrow;
+    }
+  }
+
+  // Method to sign out
+  Future<void> signOut(BuildContext context) async {
+    try {
+      await _auth.signOut();
+      _eventHandler.sucessSnackBar(context, "Signed out successfully");
+    } catch (e) {
+      log("Error signing out: $e");
+      _eventHandler.errorSnackBar(context, "Error signing out");
+      rethrow;
+    }
+  }
+
   @override
   void dispose() {
     _postsController.close();

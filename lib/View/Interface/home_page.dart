@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:social_media/View/Interface/Feed/interface_page.dart';
 import 'package:social_media/View/Interface/Post/post_page.dart';
+import 'package:social_media/View/Interface/Profile/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,7 +23,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     Center(child: Text('Search')),
     CreatePostPage(),
     Center(child: Text('Notifications')),
-    Center(child: Text('Profile')),
+    ProfilePage(),
   ];
 
   @override
