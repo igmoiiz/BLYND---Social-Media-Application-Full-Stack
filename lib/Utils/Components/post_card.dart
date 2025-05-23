@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:social_media/Utils/Navigation/app_custom_route.dart';
 import 'package:social_media/View/Interface/Feed/post_detail_page.dart';
 import 'package:social_media/Model/post_model.dart';
+import 'package:social_media/View/Interface/Profile/profile_page.dart';
 
 class PostCard extends StatelessWidget {
   final String userName;
@@ -51,38 +52,23 @@ class PostCard extends StatelessWidget {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          elegantRoute(
-            PostDetailPage(
-              post: PostModel(
-                postId: postId,
-                userEmail: userEmail,
-                userId: userId,
-                userName: userName,
-                userProfileImage: userImageUrl,
-                caption: description,
-                postImage: postImageUrl,
-                likeCount: likeCount,
-                likedBy: likedBy,
-                comments: comments,
-                createdAt: createdAt,
-              ),
-            ),
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// Header
-            Row(
-              children: [
-                ClipOval(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// Header
+          Row(
+            children: [
+              // Profile Image with tap handler
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    elegantRoute(ProfilePage(userId: userId)),
+                  );
+                },
+                child: ClipOval(
                   child: CachedNetworkImage(
                     imageUrl: userImageUrl,
                     width: 40,
@@ -112,8 +98,17 @@ class PostCard extends StatelessWidget {
                         ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
+              ),
+              const SizedBox(width: 10),
+              // Username with tap handler
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      elegantRoute(ProfilePage(userId: userId)),
+                    );
+                  },
                   child: Text(
                     userName,
                     style: GoogleFonts.poppins(
@@ -123,16 +118,37 @@ class PostCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.more_horiz),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
+              ),
+              IconButton(icon: const Icon(Icons.more_horiz), onPressed: () {}),
+            ],
+          ),
+          const SizedBox(height: 10),
 
-            /// Post Image
-            ClipRRect(
+          /// Post Image with tap handler for post details
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                elegantRoute(
+                  PostDetailPage(
+                    post: PostModel(
+                      postId: postId,
+                      userEmail: userEmail,
+                      userId: userId,
+                      userName: userName,
+                      userProfileImage: userImageUrl,
+                      caption: description,
+                      postImage: postImageUrl,
+                      likeCount: likeCount,
+                      likedBy: likedBy,
+                      comments: comments,
+                      createdAt: createdAt,
+                    ),
+                  ),
+                ),
+              );
+            },
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: CachedNetworkImage(
                 imageUrl: postImageUrl,
@@ -183,145 +199,145 @@ class PostCard extends StatelessWidget {
                     ),
               ),
             ),
-            const SizedBox(height: 10),
+          ),
+          const SizedBox(height: 10),
 
-            /// Description
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: RichText(
-                text: TextSpan(
-                  style: GoogleFonts.poppins(
-                    color: theme.colorScheme.onBackground,
-                    fontSize: 14,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: "$userName ",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(text: description),
-                  ],
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-
-            // Add timestamp display
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                _formatTimestamp(createdAt),
+          /// Description
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: RichText(
+              text: TextSpan(
                 style: GoogleFonts.poppins(
-                  color: theme.colorScheme.onBackground.withOpacity(0.6),
-                  fontSize: 12,
+                  color: theme.colorScheme.onBackground,
+                  fontSize: 14,
+                ),
+                children: [
+                  TextSpan(
+                    text: "$userName ",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: description),
+                ],
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+          // Add timestamp display
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Text(
+              _formatTimestamp(createdAt),
+              style: GoogleFonts.poppins(
+                color: theme.colorScheme.onBackground.withOpacity(0.6),
+                fontSize: 12,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          /// Like Count
+          if (likeCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 4),
+              child: Text(
+                '$likeCount ${likeCount == 1 ? 'like' : 'likes'}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onBackground,
                 ),
               ),
             ),
 
-            const SizedBox(height: 6),
-
-            /// Like Count
-            if (likeCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 4),
-                child: Text(
-                  '$likeCount ${likeCount == 1 ? 'like' : 'likes'}',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onBackground,
-                  ),
+          /// Action Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              IconButton(
+                onPressed: onLike,
+                icon: Icon(
+                  isLiked ? Iconsax.heart5 : Iconsax.heart,
+                  color: isLiked ? Colors.red : theme.iconTheme.color,
+                  size: 26,
                 ),
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: onComment,
+                icon: Icon(
+                  Iconsax.message,
+                  size: 24,
+                  color: theme.iconTheme.color,
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Iconsax.send_2,
+                  size: 24,
+                  color: theme.iconTheme.color,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: onSave,
+                icon: Icon(
+                  isSaved ? Iconsax.bookmark5 : Iconsax.bookmark,
+                  size: 24,
+                  color: theme.iconTheme.color,
+                ),
+              ),
+            ],
+          ),
 
-            /// Action Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: onLike,
-                  icon: Icon(
-                    isLiked ? Iconsax.heart5 : Iconsax.heart,
-                    color: isLiked ? Colors.red : theme.iconTheme.color,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  onPressed: onComment,
-                  icon: Icon(
-                    Iconsax.message,
-                    size: 24,
-                    color: theme.iconTheme.color,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Iconsax.send_2,
-                    size: 24,
-                    color: theme.iconTheme.color,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: onSave,
-                  icon: Icon(
-                    isSaved ? Iconsax.bookmark5 : Iconsax.bookmark,
-                    size: 24,
-                    color: theme.iconTheme.color,
-                  ),
-                ),
-              ],
-            ),
-
-            /// Comments Preview
-            if (comments != null && comments!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'View all ${comments!.length} comments',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: theme.colorScheme.onBackground.withOpacity(0.6),
-                      ),
+          /// Comments Preview
+          if (comments != null && comments!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'View all ${comments!.length} comments',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: theme.colorScheme.onBackground.withOpacity(0.6),
                     ),
-                    const SizedBox(height: 4),
-                    // Show last 2 comments
-                    ...comments!
-                        .take(2)
-                        .map(
-                          (comment) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: RichText(
-                              text: TextSpan(
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: theme.colorScheme.onBackground,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: '${comment['userName']} ',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(text: comment['comment']),
-                                ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Show last 2 comments
+                  ...comments!
+                      .take(2)
+                      .map(
+                        (comment) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: theme.colorScheme.onBackground,
                               ),
+                              children: [
+                                TextSpan(
+                                  text: '${comment['userName']} ',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(text: comment['comment']),
+                              ],
                             ),
                           ),
                         ),
-                  ],
-                ),
+                      ),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

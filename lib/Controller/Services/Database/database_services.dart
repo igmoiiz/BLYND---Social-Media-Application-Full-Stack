@@ -40,6 +40,19 @@ class DatabaseServices extends ChangeNotifier {
   final StreamController<List<PostModel>> _postsController =
       StreamController<List<PostModel>>.broadcast();
 
+  // Add cache maps for followers and following
+  final Map<String, bool> _followingStatusCache = {};
+  final Map<String, List<Map<String, dynamic>>> _followersListCache = {};
+  final Map<String, List<Map<String, dynamic>>> _followingListCache = {};
+  final Map<String, int> _followersCountCache = {};
+  final Map<String, int> _followingCountCache = {};
+
+  // Add getters for cache
+  bool isFollowingCached(String userId) =>
+      _followingStatusCache.containsKey(userId);
+  bool getFollowingStatus(String userId) =>
+      _followingStatusCache[userId] ?? false;
+
   //  Method to pick an image from the gallery
   Future<void> pickImageFromGallery() async {
     try {
@@ -415,7 +428,7 @@ class DatabaseServices extends ChangeNotifier {
         );
   }
 
-  // Method to follow/unfollow a user
+  // Method to follow/unfollow a user with caching
   Future<void> toggleFollow(String targetUserId) async {
     try {
       if (_auth.currentUser == null) throw Exception('User not authenticated');
@@ -443,6 +456,13 @@ class DatabaseServices extends ChangeNotifier {
               .collection("userFollowers")
               .doc(currentUserId),
         );
+
+        // Update cache
+        _followingStatusCache[targetUserId] = false;
+        _followersCountCache[targetUserId] =
+            (_followersCountCache[targetUserId] ?? 1) - 1;
+        _followingCountCache[currentUserId] =
+            (_followingCountCache[currentUserId] ?? 1) - 1;
       } else {
         // Follow
         batch.set(
@@ -461,6 +481,13 @@ class DatabaseServices extends ChangeNotifier {
               .doc(currentUserId),
           {'timestamp': FieldValue.serverTimestamp()},
         );
+
+        // Update cache
+        _followingStatusCache[targetUserId] = true;
+        _followersCountCache[targetUserId] =
+            (_followersCountCache[targetUserId] ?? 0) + 1;
+        _followingCountCache[currentUserId] =
+            (_followingCountCache[currentUserId] ?? 0) + 1;
       }
 
       await batch.commit();
@@ -471,23 +498,30 @@ class DatabaseServices extends ChangeNotifier {
     }
   }
 
-  // Helper method to check if current user is following a user
+  // Helper method to check if current user is following a user with caching
   Future<bool> isFollowingUser(String targetUserId) async {
     final currentUser = auth.currentUser;
     if (currentUser == null) return false;
 
+    // Check cache first
+    if (_followingStatusCache.containsKey(targetUserId)) {
+      return _followingStatusCache[targetUserId]!;
+    }
+
     final followingDoc =
         await fireStore
-            .collection('users')
+            .collection("following")
             .doc(currentUser.uid)
-            .collection('following')
+            .collection("userFollowing")
             .doc(targetUserId)
             .get();
 
+    // Update cache
+    _followingStatusCache[targetUserId] = followingDoc.exists;
     return followingDoc.exists;
   }
 
-  // Method to get user followers
+  // Method to get user followers with caching
   Stream<List<Map<String, dynamic>>> getUserFollowers(String userId) {
     return _fireStore
         .collection("followers")
@@ -497,17 +531,35 @@ class DatabaseServices extends ChangeNotifier {
         .asyncMap((snapshot) async {
           final followers = <Map<String, dynamic>>[];
           for (var doc in snapshot.docs) {
+            // Check cache first
+            if (_followersListCache.containsKey(userId)) {
+              final cachedFollowers = _followersListCache[userId]!;
+              final cachedFollower = cachedFollowers.firstWhere(
+                (f) => f['userId'] == doc.id,
+                orElse: () => {},
+              );
+              if (cachedFollower.isNotEmpty) {
+                followers.add(cachedFollower);
+                continue;
+              }
+            }
+
             final userDoc =
                 await _fireStore.collection("users").doc(doc.id).get();
             if (userDoc.exists) {
-              followers.add({...userDoc.data()!, 'userId': doc.id});
+              final userData = {...userDoc.data()!, 'userId': doc.id};
+              followers.add(userData);
             }
           }
+
+          // Update cache
+          _followersListCache[userId] = followers;
+          _followersCountCache[userId] = followers.length;
           return followers;
         });
   }
 
-  // Method to get user following
+  // Method to get user following with caching
   Stream<List<Map<String, dynamic>>> getUserFollowing(String userId) {
     return _fireStore
         .collection("following")
@@ -517,12 +569,30 @@ class DatabaseServices extends ChangeNotifier {
         .asyncMap((snapshot) async {
           final following = <Map<String, dynamic>>[];
           for (var doc in snapshot.docs) {
+            // Check cache first
+            if (_followingListCache.containsKey(userId)) {
+              final cachedFollowing = _followingListCache[userId]!;
+              final cachedUser = cachedFollowing.firstWhere(
+                (f) => f['userId'] == doc.id,
+                orElse: () => {},
+              );
+              if (cachedUser.isNotEmpty) {
+                following.add(cachedUser);
+                continue;
+              }
+            }
+
             final userDoc =
                 await _fireStore.collection("users").doc(doc.id).get();
             if (userDoc.exists) {
-              following.add({...userDoc.data()!, 'userId': doc.id});
+              final userData = {...userDoc.data()!, 'userId': doc.id};
+              following.add(userData);
             }
           }
+
+          // Update cache
+          _followingListCache[userId] = following;
+          _followingCountCache[userId] = following.length;
           return following;
         });
   }
@@ -600,8 +670,27 @@ class DatabaseServices extends ChangeNotifier {
     }
   }
 
+  // Method to clear cache for a specific user
+  void clearUserCache(String userId) {
+    _followingStatusCache.remove(userId);
+    _followersListCache.remove(userId);
+    _followingListCache.remove(userId);
+    _followersCountCache.remove(userId);
+    _followingCountCache.remove(userId);
+  }
+
+  // Method to clear all cache
+  void clearAllCache() {
+    _followingStatusCache.clear();
+    _followersListCache.clear();
+    _followingListCache.clear();
+    _followersCountCache.clear();
+    _followingCountCache.clear();
+  }
+
   @override
   void dispose() {
+    clearAllCache();
     _postsController.close();
     super.dispose();
   }

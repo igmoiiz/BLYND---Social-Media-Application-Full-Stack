@@ -1,13 +1,16 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Model/post_model.dart';
-import 'package:social_media/Utils/Components/post_card.dart';
 import 'package:social_media/Utils/Navigation/app_custom_route.dart';
 import 'package:social_media/View/Interface/Settings/settings_page.dart';
+import 'package:social_media/View/Interface/Feed/post_detail_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -22,22 +25,51 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = false;
 
   Future<void> _toggleFollow() async {
-    if (widget.userId == null) return;
+    if (_isLoading) return;
 
     setState(() => _isLoading = true);
     try {
       await context.read<DatabaseServices>().toggleFollow(widget.userId!);
+      // Clear cache for the current user
+      context.read<DatabaseServices>().clearUserCache(widget.userId!);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Widget _buildStatColumn(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onBackground,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+          ),
+        ),
+      ],
+    );
   }
 
   void _showFollowers() {
@@ -253,464 +285,413 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isOwnProfile = widget.userId == null;
 
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Profile Header
-            SliverAppBar(
-              floating: true,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: theme.scaffoldBackgroundColor,
-              actions: [
-                if (widget.userId == null) // Only show settings for own profile
-                  IconButton(
-                    icon: Icon(
-                      Iconsax.setting_2,
-                      color: theme.colorScheme.primary,
+        child: LiquidPullToRefresh(
+          onRefresh: () async {
+            // Clear cache for the current user
+            if (widget.userId != null) {
+              context.read<DatabaseServices>().clearUserCache(widget.userId!);
+            }
+            // Force rebuild the profile
+            setState(() {});
+          },
+          showChildOpacityTransition: false,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Profile Header
+              SliverAppBar(
+                floating: true,
+                pinned: true,
+                elevation: 0,
+                backgroundColor: theme.scaffoldBackgroundColor,
+                leading:
+                    !isOwnProfile
+                        ? IconButton(
+                          icon: Icon(
+                            Icons.arrow_back_ios_new,
+                            color: theme.colorScheme.onBackground,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        )
+                        : null,
+                actions: [
+                  if (widget.userId ==
+                      null) // Only show settings for own profile
+                    IconButton(
+                      icon: Icon(
+                        Iconsax.setting_2,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          elegantRoute(const SettingsPage()),
+                        );
+                      },
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        elegantRoute(const SettingsPage()),
-                      );
-                    },
-                  ),
-              ],
-            ),
+                ],
+              ),
 
-            // Profile Content
-            SliverToBoxAdapter(
-              child: FutureBuilder<Map<String, dynamic>>(
-                future: context.read<DatabaseServices>().getUserProfile(
+              // Profile Content
+              SliverToBoxAdapter(
+                child: FutureBuilder<Map<String, dynamic>>(
+                  future: context.read<DatabaseServices>().getUserProfile(
+                    userId: widget.userId,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Error loading profile',
+                          style: GoogleFonts.poppins(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      );
+                    }
+
+                    final userData = snapshot.data ?? {};
+                    final name = userData['name'] as String? ?? 'User';
+                    final bio = userData['bio'] as String? ?? 'No bio yet';
+                    final profileImage = userData['profileImage'] as String?;
+                    final followersCount =
+                        userData['followersCount'] as int? ?? 0;
+                    final followingCount =
+                        userData['followingCount'] as int? ?? 0;
+                    final postsCount = userData['postsCount'] as int? ?? 0;
+                    final isFollowing =
+                        userData['isFollowing'] as bool? ?? false;
+
+                    return Column(
+                      children: [
+                        // Profile Image and Stats
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              // Profile Image
+                              Hero(
+                                tag: 'profile_image_${widget.userId ?? 'own'}',
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: theme.colorScheme.primary,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl:
+                                          profileImage ??
+                                          'https://via.placeholder.com/150',
+                                      fit: BoxFit.cover,
+                                      placeholder:
+                                          (context, url) => Container(
+                                            color: theme.colorScheme.surface,
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(
+                                                      theme.colorScheme.primary,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                      errorWidget:
+                                          (context, url, error) => Container(
+                                            color: theme.colorScheme.surface,
+                                            child: Icon(
+                                              Iconsax.user,
+                                              color: theme.colorScheme.primary,
+                                              size: 40,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              // Stats
+                              Expanded(
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _showFollowers,
+                                      child: _buildStatColumn(
+                                        'Posts',
+                                        postsCount.toString(),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: _showFollowers,
+                                      child: _buildStatColumn(
+                                        'Followers',
+                                        followersCount.toString(),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: _showFollowing,
+                                      child: _buildStatColumn(
+                                        'Following',
+                                        followingCount.toString(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Bio and Follow Button
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onBackground,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                bio,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: theme.colorScheme.onBackground
+                                      .withOpacity(0.7),
+                                ),
+                              ),
+                              if (!isOwnProfile) ...[
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed:
+                                        _isLoading ? null : _toggleFollow,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          isFollowing
+                                              ? theme.colorScheme.surface
+                                              : theme.colorScheme.secondary,
+                                      foregroundColor:
+                                          isFollowing
+                                              ? theme.colorScheme.secondary
+                                              : theme.colorScheme.surface,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        side:
+                                            isFollowing
+                                                ? BorderSide(
+                                                  color:
+                                                      theme.colorScheme.surface,
+                                                )
+                                                : BorderSide.none,
+                                      ),
+                                    ),
+                                    child:
+                                        _isLoading
+                                            ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                            : Text(
+                                              isFollowing
+                                                  ? 'Unfollow'
+                                                  : 'Follow',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              // User Posts
+              StreamBuilder<List<PostModel>>(
+                stream: context.read<DatabaseServices>().getUserPosts(
                   userId: widget.userId,
                 ),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const SliverToBoxAdapter(
+                      child: Center(child: CircularProgressIndicator()),
+                    );
                   }
 
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Error loading profile',
-                        style: GoogleFonts.poppins(
-                          color: theme.colorScheme.error,
+                    return SliverToBoxAdapter(
+                      child: Center(
+                        child: Text(
+                          'Error loading posts',
+                          style: GoogleFonts.poppins(
+                            color: theme.colorScheme.error,
+                          ),
                         ),
                       ),
                     );
                   }
 
-                  final userData = snapshot.data ?? {};
-                  final name = userData['name'] as String? ?? 'User';
-                  final bio = userData['bio'] as String? ?? 'No bio yet';
-                  final profileImage = userData['profileImage'] as String?;
-                  final followersCount =
-                      userData['followersCount'] as int? ?? 0;
-                  final followingCount =
-                      userData['followingCount'] as int? ?? 0;
-                  final postsCount = userData['postsCount'] as int? ?? 0;
-                  final isFollowing = userData['isFollowing'] as bool? ?? false;
-                  final isOwnProfile = widget.userId == null;
-
-                  return Column(
-                    children: [
-                      // Profile Image and Stats
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            // Profile Image
-                            Hero(
-                              tag: 'profile_image_${widget.userId ?? 'own'}',
-                              child: Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: theme.colorScheme.primary,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: ClipOval(
-                                  child: CachedNetworkImage(
-                                    imageUrl:
-                                        profileImage ??
-                                        'https://via.placeholder.com/150',
-                                    fit: BoxFit.cover,
-                                    placeholder:
-                                        (context, url) => Container(
-                                          color: theme.colorScheme.surface,
-                                          child: Center(
-                                            child: CircularProgressIndicator(
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    theme.colorScheme.primary,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                    errorWidget:
-                                        (context, url, error) => Container(
-                                          color: theme.colorScheme.surface,
-                                          child: Icon(
-                                            Iconsax.user,
-                                            color: theme.colorScheme.primary,
-                                            size: 40,
-                                          ),
-                                        ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                            // Stats
-                            Expanded(
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  GestureDetector(
-                                    onTap: _showFollowers,
-                                    child: _buildStatColumn(
-                                      'Posts',
-                                      postsCount.toString(),
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: _showFollowers,
-                                    child: _buildStatColumn(
-                                      'Followers',
-                                      followersCount.toString(),
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: _showFollowing,
-                                    child: _buildStatColumn(
-                                      'Following',
-                                      followingCount.toString(),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                  final posts = snapshot.data ?? [];
+                  if (posts.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Center(
+                        child: Text(
+                          'No posts yet',
+                          style: GoogleFonts.poppins(
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                       ),
+                    );
+                  }
 
-                      // Bio and Follow Button
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onBackground,
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 2,
+                            crossAxisSpacing: 2,
+                          ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final post = posts[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => PostDetailPage(post: post),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              bio,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: theme.colorScheme.onBackground
-                                    .withOpacity(0.7),
+                            );
+                          },
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CachedNetworkImage(
+                                imageUrl:
+                                    post.postImage ??
+                                    'https://via.placeholder.com/150',
+                                fit: BoxFit.cover,
+                                placeholder:
+                                    (context, url) => Container(
+                                      color: theme.colorScheme.surface,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                theme.colorScheme.primary,
+                                              ),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                errorWidget:
+                                    (context, url, error) => Container(
+                                      color: theme.colorScheme.surface,
+                                      child: Icon(
+                                        Iconsax.image,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
                               ),
-                            ),
-                            if (!isOwnProfile) ...[
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _toggleFollow,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        isFollowing
-                                            ? theme.colorScheme.surface
-                                            : theme.colorScheme.primary,
-                                    foregroundColor:
-                                        isFollowing
-                                            ? theme.colorScheme.primary
-                                            : Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      side:
-                                          isFollowing
-                                              ? BorderSide(
-                                                color:
-                                                    theme.colorScheme.primary,
-                                              )
-                                              : BorderSide.none,
-                                    ),
+                              if (post.likeCount != null && post.likeCount! > 0)
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Iconsax.heart5,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        post.likeCount.toString(),
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child:
-                                      _isLoading
-                                          ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                          : Text(
-                                            isFollowing ? 'Unfollow' : 'Follow',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
                                 ),
-                              ),
+                              if (post.comments != null &&
+                                  post.comments!.isNotEmpty)
+                                Positioned(
+                                  right: 8,
+                                  bottom: 8,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Iconsax.message,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        post.comments!.length.toString(),
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-                    ],
+                          ),
+                        );
+                      }, childCount: posts.length),
+                    ),
                   );
                 },
               ),
-            ),
-
-            // User Posts
-            StreamBuilder<List<PostModel>>(
-              stream: context.read<DatabaseServices>().getUserPosts(
-                userId: widget.userId,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SliverToBoxAdapter(
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return SliverToBoxAdapter(
-                    child: Center(
-                      child: Text(
-                        'Error loading posts',
-                        style: GoogleFonts.poppins(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final posts = snapshot.data ?? [];
-
-                if (posts.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Iconsax.image,
-                            color: theme.colorScheme.primary,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No posts yet',
-                            style: GoogleFonts.poppins(
-                              color: theme.colorScheme.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 2,
-                          crossAxisSpacing: 2,
-                        ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final post = posts[index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => Scaffold(
-                                    appBar: AppBar(
-                                      elevation: 0,
-                                      backgroundColor:
-                                          theme.scaffoldBackgroundColor,
-                                      leading: IconButton(
-                                        icon: Icon(
-                                          Icons.arrow_back_ios_new,
-                                          color: theme.colorScheme.onBackground,
-                                        ),
-                                        onPressed: () => Navigator.pop(context),
-                                      ),
-                                    ),
-                                    body: PostCard(
-                                      userName: post.userName ?? 'Unknown User',
-                                      userImageUrl:
-                                          post.userProfileImage ??
-                                          'https://via.placeholder.com/150',
-                                      postImageUrl:
-                                          post.postImage ??
-                                          'https://via.placeholder.com/150',
-                                      description: post.caption ?? '',
-                                      isLiked: context
-                                          .read<DatabaseServices>()
-                                          .hasUserLikedPost(post.likedBy ?? []),
-                                      onLike:
-                                          () => context
-                                              .read<DatabaseServices>()
-                                              .toggleLike(post.postId!),
-                                      onComment: () {
-                                        // Handle comment
-                                      },
-                                      onSave: () {},
-                                      createdAt:
-                                          post.createdAt ?? DateTime.now(),
-                                      likeCount: post.likeCount ?? 0,
-                                      comments: post.comments,
-                                      postId: post.postId!,
-                                      userEmail: post.userEmail ?? '',
-                                      userId: post.userId ?? '',
-                                      likedBy: post.likedBy ?? [],
-                                    ),
-                                  ),
-                            ),
-                          );
-                        },
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl:
-                                  post.postImage ??
-                                  'https://via.placeholder.com/150',
-                              fit: BoxFit.cover,
-                              placeholder:
-                                  (context, url) => Container(
-                                    color: theme.colorScheme.surface,
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              theme.colorScheme.primary,
-                                            ),
-                                      ),
-                                    ),
-                                  ),
-                              errorWidget:
-                                  (context, url, error) => Container(
-                                    color: theme.colorScheme.surface,
-                                    child: Icon(
-                                      Iconsax.image,
-                                      color: theme.colorScheme.primary,
-                                      size: 24,
-                                    ),
-                                  ),
-                            ),
-                            if (post.likeCount != null && post.likeCount! > 0)
-                              Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Iconsax.heart5,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      post.likeCount.toString(),
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (post.comments != null &&
-                                post.comments!.isNotEmpty)
-                              Positioned(
-                                right: 8,
-                                bottom: 8,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Iconsax.message5,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      post.comments!.length.toString(),
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }, childCount: posts.length),
-                  ),
-                );
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStatColumn(String label, String count) {
-    return Column(
-      children: [
-        Text(
-          count,
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onBackground,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
-          ),
-        ),
-      ],
     );
   }
 }

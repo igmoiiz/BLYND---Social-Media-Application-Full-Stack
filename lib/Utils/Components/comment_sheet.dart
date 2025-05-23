@@ -27,9 +27,11 @@ class _CommentSheetState extends State<CommentSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final keyboardHeight = bottomInset > 0 ? bottomInset.toDouble() : 0.0;
 
     return Container(
-      height: size.height * 0.75,
+      height: size.height * 0.75 + keyboardHeight,
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -114,8 +116,14 @@ class _CommentSheetState extends State<CommentSheet> {
 
           // Comment Input
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 8,
+              bottom: 8 + keyboardHeight,
+            ),
             decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
               border: Border(
                 top: BorderSide(
                   color: theme.colorScheme.onSurface.withOpacity(0.1),
@@ -123,6 +131,7 @@ class _CommentSheetState extends State<CommentSheet> {
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: TextField(
@@ -135,8 +144,14 @@ class _CommentSheetState extends State<CommentSheet> {
                       ),
                       filled: true,
                       fillColor: theme.colorScheme.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                     ),
                     maxLines: null,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
                   ),
                 ),
                 const SizedBox(width: 8),
