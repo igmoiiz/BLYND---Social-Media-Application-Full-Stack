@@ -14,89 +14,94 @@ class InterfacePage extends StatelessWidget {
     final color = Theme.of(context).colorScheme;
     // final size = MediaQuery.sizeOf(context);
     return Scaffold(
-      body: CustomScrollView(
-        physics: ScrollPhysics(parent: BouncingScrollPhysics()),
-        slivers: [
-          SliverAppBar(
-            elevation: 0.0,
-            pinned: false,
-            floating: true,
-            title: Text(
-              "BLYND",
-              style: TextStyle(
-                color: color.primary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-                fontFamily: GoogleFonts.montserrat().fontFamily,
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: ScrollPhysics(parent: BouncingScrollPhysics()),
+          slivers: [
+            SliverAppBar(
+              elevation: 0.0,
+              pinned: false,
+              floating: true,
+              title: Text(
+                "BLYND",
+                style: TextStyle(
+                  color: color.primary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                  fontFamily: GoogleFonts.montserrat().fontFamily,
+                ),
               ),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: Icon(FontAwesomeIcons.facebookMessenger),
+                ),
+              ],
             ),
-            actions: [
-              IconButton(
-                onPressed: () {},
-                icon: Icon(FontAwesomeIcons.facebookMessenger),
-              ),
-            ],
-          ),
 
-          Consumer<DatabaseServices>(
-            builder: (context, databaseProvider, child) {
-              return StreamBuilder(
-                stream:
-                    databaseProvider.fireStore.collection("Posts").snapshots(),
-                builder: (context, AsyncSnapshot snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return SliverToBoxAdapter(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: 10,
-                        children: [
-                          CircularProgressIndicator(
-                            backgroundColor: Colors.white,
-                            valueColor: AlwaysStoppedAnimation(color.primary),
-                          ),
-                          Text("Loading Please wait..."),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return SliverToBoxAdapter(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: 10,
-                        children: [
-                          Icon(Icons.error_outline_rounded),
-                          Text("Something went wrong: ${snapshot.error}"),
-                        ],
-                      ),
-                    );
-                  }
-                  final data = snapshot.data!.docs;
-                  return SliverList.builder(
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      final post = PostModel.fromJson(data[index].data());
-                      return PostCard(
-                        userName: post.userName ?? 'Unknown User',
-                        userImageUrl:
-                            post.userProfileImage ??
-                            'https://via.placeholder.com/150',
-                        postImageUrl:
-                            post.postImage ?? 'https://via.placeholder.com/150',
-                        description: post.caption ?? '',
-                        onLike: () {},
-                        onComment: () {},
-                        onSave: () {},
-                        createdAt: post.createdAt ?? DateTime.now(),
+            Consumer<DatabaseServices>(
+              builder: (context, databaseProvider, child) {
+                return StreamBuilder(
+                  stream:
+                      databaseProvider.fireStore
+                          .collection("Posts")
+                          .snapshots(),
+                  builder: (context, AsyncSnapshot snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return SliverToBoxAdapter(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 10,
+                          children: [
+                            CircularProgressIndicator(
+                              backgroundColor: Colors.white,
+                              valueColor: AlwaysStoppedAnimation(color.primary),
+                            ),
+                            Text("Loading Please wait..."),
+                          ],
+                        ),
                       );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ],
+                    }
+
+                    if (snapshot.hasError) {
+                      return SliverToBoxAdapter(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          spacing: 10,
+                          children: [
+                            Icon(Icons.error_outline_rounded),
+                            Text("Something went wrong: ${snapshot.error}"),
+                          ],
+                        ),
+                      );
+                    }
+                    final data = snapshot.data!.docs;
+                    return SliverList.builder(
+                      itemCount: data.length,
+                      itemBuilder: (context, index) {
+                        final post = PostModel.fromJson(data[index].data());
+                        return PostCard(
+                          userName: post.userName ?? 'Unknown User',
+                          userImageUrl:
+                              post.userProfileImage ??
+                              'https://via.placeholder.com/150',
+                          postImageUrl:
+                              post.postImage ??
+                              'https://via.placeholder.com/150',
+                          description: post.caption ?? '',
+                          onLike: () {},
+                          onComment: () {},
+                          onSave: () {},
+                          createdAt: post.createdAt ?? DateTime.now(),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
