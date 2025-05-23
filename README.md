@@ -251,5 +251,5 @@ For support, email moaiz3110@gmail.com.
 ---
 
 <div align="center">
-  Made with ❤️ by [Your Name]
+  Made with ❤️ by Moiz Baloch
 </div>
