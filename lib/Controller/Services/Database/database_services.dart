@@ -37,6 +37,8 @@ class DatabaseServices extends ChangeNotifier {
   String? get imageUrl => _imageUrl;
   File? get image => _image;
   InputControllers get inputControllers => _inputControllers;
+  final StreamController<List<PostModel>> _postsController =
+      StreamController<List<PostModel>>.broadcast();
 
   //  Method to pick an image from the gallery
   Future<void> pickImageFromGallery() async {
@@ -299,26 +301,52 @@ class DatabaseServices extends ChangeNotifier {
 
   // Method to get real-time updates for all posts
   Stream<List<PostModel>> getPostsStream() {
-    return _fireStore
+    // Listen to posts collection
+    _fireStore
         .collection("Posts")
-        .orderBy('createdAt', descending: true) // Ensure newest first
-        .limit(20)
+        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-          // Convert to list and sort again to ensure proper ordering
+        .listen((snapshot) {
           final posts =
-              snapshot.docs
-                  .map((doc) => PostModel.fromJson(doc.data()))
-                  .toList();
-
-          // Sort by createdAt in descending order (newest first)
-          posts.sort(
-            (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
-              a.createdAt ?? DateTime.now(),
-            ),
-          );
-
-          return posts;
+              snapshot.docs.map((doc) {
+                final data = doc.data();
+                data['postId'] = doc.id;
+                return PostModel.fromJson(data);
+              }).toList();
+          _postsController.add(posts);
         });
+
+    return _postsController.stream;
+  }
+
+  // Add this method to refresh posts
+  Future<void> refreshPosts() async {
+    try {
+      // Force a refresh by getting the latest posts
+      final posts =
+          await _fireStore
+              .collection("Posts")
+              .orderBy('createdAt', descending: true)
+              .get();
+
+      // Convert to PostModel list
+      final postList =
+          posts.docs.map((doc) {
+            final data = doc.data();
+            data['postId'] = doc.id;
+            return PostModel.fromJson(data);
+          }).toList();
+
+      // Update the stream
+      _postsController.add(postList);
+    } catch (e) {
+      _postsController.addError(e);
+    }
+  }
+
+  @override
+  void dispose() {
+    _postsController.close();
+    super.dispose();
   }
 }
