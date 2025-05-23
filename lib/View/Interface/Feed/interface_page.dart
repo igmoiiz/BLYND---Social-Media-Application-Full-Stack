@@ -25,9 +25,11 @@ class InterfacePage extends StatelessWidget {
         child: LiquidPullToRefresh(
           onRefresh: () => _onRefresh(context),
           color: color.primary,
+          borderWidth: 5,
+          springAnimationDurationInMilliseconds: 1000,
           backgroundColor: color.surface,
-          height: 80,
-          animSpeedFactor: 2,
+          height: 100,
+          animSpeedFactor: 3,
           showChildOpacityTransition: true,
           child: CustomScrollView(
             physics: const ScrollPhysics(parent: BouncingScrollPhysics()),
