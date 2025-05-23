@@ -204,4 +204,74 @@ class DatabaseServices extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // Method to like/unlike a post
+  Future<void> toggleLike(String postId) async {
+    try {
+      if (_auth.currentUser == null) return;
+
+      final postRef = _fireStore.collection("Posts").doc(postId);
+      final postDoc = await postRef.get();
+
+      if (!postDoc.exists) return;
+
+      final post = PostModel.fromJson(postDoc.data()!);
+      final likedBy = post.likedBy ?? [];
+      final userId = _auth.currentUser!.uid;
+
+      if (likedBy.contains(userId)) {
+        // Unlike
+        await postRef.update({
+          'likedBy': FieldValue.arrayRemove([userId]),
+          'likeCount': FieldValue.increment(-1),
+        });
+      } else {
+        // Like
+        await postRef.update({
+          'likedBy': FieldValue.arrayUnion([userId]),
+          'likeCount': FieldValue.increment(1),
+        });
+      }
+    } catch (error) {
+      log("Error toggling like: $error");
+      rethrow;
+    }
+  }
+
+  // Method to add a comment
+  Future<void> addComment(String postId, String comment) async {
+    try {
+      if (_auth.currentUser == null) return;
+
+      final userDoc =
+          await _fireStore
+              .collection("users")
+              .doc(_auth.currentUser!.uid)
+              .get();
+
+      if (!userDoc.exists) return;
+
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final commentData = {
+        'userId': _auth.currentUser!.uid,
+        'userName': userData['name'] as String,
+        'userProfileImage': userData['profileImage'] as String,
+        'comment': comment,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      await _fireStore.collection("Posts").doc(postId).update({
+        'comments': FieldValue.arrayUnion([commentData]),
+      });
+    } catch (error) {
+      log("Error adding comment: $error");
+      rethrow;
+    }
+  }
+
+  // Method to check if current user has liked a post
+  bool hasUserLikedPost(List<String>? likedBy) {
+    if (_auth.currentUser == null || likedBy == null) return false;
+    return likedBy.contains(_auth.currentUser!.uid);
+  }
 }

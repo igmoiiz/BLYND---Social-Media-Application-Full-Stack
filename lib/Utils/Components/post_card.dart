@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PostCard extends StatelessWidget {
   final String userName;
@@ -15,6 +16,8 @@ class PostCard extends StatelessWidget {
   final VoidCallback onComment;
   final VoidCallback onSave;
   final DateTime createdAt;
+  final int likeCount;
+  final List<Map<String, dynamic>>? comments;
 
   const PostCard({
     super.key,
@@ -28,6 +31,8 @@ class PostCard extends StatelessWidget {
     required this.onComment,
     required this.onSave,
     required this.createdAt,
+    this.likeCount = 0,
+    this.comments,
   });
 
   @override
@@ -44,7 +49,10 @@ class PostCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(userImageUrl),
+                backgroundImage: CachedNetworkImageProvider(userImageUrl),
+                onBackgroundImageError: (exception, stackTrace) {
+                  // Handle error if needed
+                },
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -65,10 +73,40 @@ class PostCard extends StatelessWidget {
           /// Post Image
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              postImageUrl,
+            child: CachedNetworkImage(
+              imageUrl: postImageUrl,
               width: double.infinity,
+              height: MediaQuery.of(context).size.width,
               fit: BoxFit.cover,
+              memCacheWidth: (MediaQuery.of(context).size.width * 2).toInt(),
+              memCacheHeight: (MediaQuery.of(context).size.width * 2).toInt(),
+              placeholder:
+                  (context, url) => Container(
+                    width: double.infinity,
+                    height: MediaQuery.of(context).size.width,
+                    color: theme.colorScheme.surface,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          theme.colorScheme.primary,
+                        ),
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
+              errorWidget:
+                  (context, url, error) => Container(
+                    width: double.infinity,
+                    height: MediaQuery.of(context).size.width,
+                    color: theme.colorScheme.surface,
+                    child: Center(
+                      child: Icon(
+                        Iconsax.image,
+                        color: theme.colorScheme.primary,
+                        size: 40,
+                      ),
+                    ),
+                  ),
             ),
           ),
           const SizedBox(height: 10),
@@ -108,6 +146,20 @@ class PostCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 6),
+
+          /// Like Count
+          if (likeCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 4),
+              child: Text(
+                '$likeCount ${likeCount == 1 ? 'like' : 'likes'}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onBackground,
+                ),
+              ),
+            ),
 
           /// Action Buttons
           Row(
@@ -150,6 +202,50 @@ class PostCard extends StatelessWidget {
               ),
             ],
           ),
+
+          /// Comments Preview
+          if (comments != null && comments!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'View all ${comments!.length} comments',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: theme.colorScheme.onBackground.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Show last 2 comments
+                  ...comments!
+                      .take(2)
+                      .map(
+                        (comment) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: theme.colorScheme.onBackground,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: '${comment['userName']} ',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(text: comment['comment']),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
         ],
       ),
     );

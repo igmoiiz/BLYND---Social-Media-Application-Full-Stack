@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:social_media/Utils/Components/post_card.dart';
 import 'package:social_media/Model/post_model.dart';
+import 'package:social_media/Utils/Components/comment_sheet.dart';
 
 class InterfacePage extends StatelessWidget {
   const InterfacePage({super.key});
@@ -49,16 +50,30 @@ class InterfacePage extends StatelessWidget {
                   builder: (context, AsyncSnapshot snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return SliverToBoxAdapter(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 10,
-                          children: [
-                            CircularProgressIndicator(
-                              backgroundColor: Colors.white,
-                              valueColor: AlwaysStoppedAnimation(color.primary),
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.8,
+                          color: Theme.of(context).colorScheme.surface,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    color.primary,
+                                  ),
+                                  strokeWidth: 2,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "Loading posts...",
+                                  style: GoogleFonts.poppins(
+                                    color: color.primary,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text("Loading Please wait..."),
-                          ],
+                          ),
                         ),
                       );
                     }
@@ -89,10 +104,26 @@ class InterfacePage extends StatelessWidget {
                               post.postImage ??
                               'https://via.placeholder.com/150',
                           description: post.caption ?? '',
-                          onLike: () {},
-                          onComment: () {},
+                          isLiked: databaseProvider.hasUserLikedPost(
+                            post.likedBy,
+                          ),
+                          onLike:
+                              () => databaseProvider.toggleLike(post.postId!),
+                          onComment: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder:
+                                  (context) => CommentSheet(
+                                    postId: post.postId!,
+                                    comments: post.comments ?? [],
+                                  ),
+                            );
+                          },
                           onSave: () {},
                           createdAt: post.createdAt ?? DateTime.now(),
+                          likeCount: post.likeCount ?? 0,
+                          comments: post.comments,
                         );
                       },
                     );

@@ -8,6 +8,8 @@ class PostModel {
   String? caption;
   int? likeCount;
   DateTime? createdAt;
+  List<String>? likedBy;
+  List<Map<String, dynamic>>? comments;
 
   PostModel({
     this.postId,
@@ -19,6 +21,8 @@ class PostModel {
     this.userName,
     this.userProfileImage,
     this.createdAt,
+    this.likedBy,
+    this.comments,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +39,16 @@ class PostModel {
           json['createdAt'] != null
               ? DateTime.parse(json['createdAt'] as String)
               : null,
+      likedBy:
+          (json['likedBy'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      comments:
+          (json['comments'] as List<dynamic>?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          [],
     );
   }
 
@@ -49,6 +63,8 @@ class PostModel {
       'caption': caption,
       'likeCount': likeCount,
       'createdAt': createdAt?.toIso8601String(),
+      'likedBy': likedBy,
+      'comments': comments,
     };
   }
 }
