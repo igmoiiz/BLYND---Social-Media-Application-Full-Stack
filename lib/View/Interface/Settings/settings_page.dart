@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:social_media/Controller/Services/Database/database_services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:social_media/Controller/Services/Authentication/auth_services.dart';
+import 'package:social_media/Utils/Navigation/app_custom_route.dart';
+import 'package:social_media/View/Interface/Settings/about_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -349,6 +351,39 @@ class _SettingsPageState extends State<SettingsPage> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // About Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              elegantRoute(const AboutPage()),
+                            );
+                          },
+                          icon: Icon(
+                            Iconsax.info_circle,
+                            color: theme.colorScheme.primary,
+                          ),
+                          label: Text(
+                            'About',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(color: theme.colorScheme.primary),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
