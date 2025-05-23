@@ -1,7 +1,7 @@
 # Social Media App
 
 <div align="center">
-  <img src="assets/logo.png" alt="Social Media App Logo" width="200"/>
+  <img src="assets/preview/Blynd.png" alt="Social Media App Logo" width="200"/>
   
   [![Flutter](https://img.shields.io/badge/Flutter-3.19.0-blue.svg)](https://flutter.dev)
   [![Firebase](https://img.shields.io/badge/Firebase-10.8.0-orange.svg)](https://firebase.google.com)
@@ -229,25 +229,24 @@ dependencies:
 ## 📱 Screenshots
 
 <div align="center">
-  <img src="assets/screenshots/profile.png" alt="Profile Page" width="200"/>
-  <img src="assets/screenshots/feed.png" alt="Feed Page" width="200"/>
-  <img src="assets/screenshots/settings.png" alt="Settings Page" width="200"/>
+  <img src="assets/preview/BLYND Profile.jpg" alt="Profile Page" width="200"/>
+  <img src="assets/preview/BLYND Feed.jpg" alt="Feed Page" width="200"/>
+  <img src="assets/preview/BLYND Settings.jpg" alt="Settings Page" width="200"/>
 </div>
 
 ## 👥 Authors
 
-- **Your Name** - *Initial work* - [Your GitHub](https://github.com/yourusername)
+- **Moiz Baloch** - *Initial work* - [GitHub](https://github.com/igmoiiz)
 
 ## 🙏 Acknowledgments
 
 - Flutter team for the amazing framework
 - Firebase for backend services
 - Supabase for storage solutions
-- All contributors who have helped shape this project
 
 ## 📞 Support
 
-For support, email your.email@example.com or join our Slack channel.
+For support, email moaiz3110@gmail.com.
 
 ---
 
